@@ -1,0 +1,49 @@
+//#version 330 core
+#version 430 core
+
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aNorm;
+layout (location = 2) in vec2 aTexCoord;
+
+struct InstanceData {mat4 model; int texIndex; float p1, p2, p3; };
+struct SortData { float distance; uint index; };
+
+// Тот же буфер, в который Compute Shader записал результат (binding = 1)
+layout (std430, binding = 1) buffer OutBuf { InstanceData visibleInstances[]; };
+layout (std430, binding = 3) buffer SortBuf { SortData sortData[]; };
+
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat4 lightSpaceMatrix;
+
+out vec3 FragPos;
+out vec3 norm;
+out vec2 uv;
+out vec4 FragPosLightSpace;
+flat out int vTexIndex; // Передаем индекс текстуры
+
+void main()
+{
+    // Используем gl_InstanceID как индекс в отфильтрованном массиве
+
+    // 1. Узнаем, какой КУБ должен быть отрисован под текущим gl_InstanceID
+    uint actualIdx = sortData[gl_InstanceID].index;
+    // 2. Берем его матрицу
+    mat4 model = visibleInstances[actualIdx].model;
+
+    // 1 ЕДИНСТВЕННЫЙ worldPos
+    vec4 worldPos = model * vec4(aPos, 1.0);
+
+    // 2 данные для fragment shader
+    FragPos = worldPos.xyz;
+    norm  = mat3(transpose(inverse(model))) * aNorm;
+    uv      = aTexCoord;
+    InstanceData data = visibleInstances[actualIdx];
+    vTexIndex = data.texIndex;
+
+    // 3 координаты в пространстве света
+    FragPosLightSpace = lightSpaceMatrix * worldPos;
+
+    // 4 финальная позиция
+    gl_Position = projection * view * worldPos;
+}

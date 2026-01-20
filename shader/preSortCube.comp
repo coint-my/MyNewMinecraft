@@ -1,0 +1,26 @@
+#version 430 core
+layout(local_size_x = 64) in;
+
+struct InstanceData { mat4 model; int texIndex; };
+struct SortData { float distance; uint index; };
+
+layout(std430, binding = 1) buffer OutBuf { InstanceData visibleInstances[]; };
+layout(std430, binding = 3) buffer SortBuf { SortData sortData[]; };
+layout(std430, binding = 2) buffer CmdBuf { uint count; uint instanceCount; /*...*/ };
+
+uniform vec3 cameraPos;
+
+void main() 
+{
+    uint idx = gl_GlobalInvocationID.x;
+    // Работаем только с теми инстансами, которые прошли Culling
+    if (idx >= instanceCount) 
+    {
+        sortData[idx].distance = 1e10; // Далекие кубы (пустые слоты) уходят в конец
+        return;
+    }
+
+    vec3 pos = vec3(visibleInstances[idx].model[3]); // Позиция из матрицы
+    sortData[idx].distance = distance(cameraPos, pos); // Считаем расстояние
+    sortData[idx].index = idx; // Сохраняем текущий индекс
+}

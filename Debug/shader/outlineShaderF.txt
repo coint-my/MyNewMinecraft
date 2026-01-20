@@ -1,0 +1,28 @@
+#version 330 core
+out vec4 FragColor;
+
+uniform vec3 outlineColor = vec3(0.0, 1.0, 0.0); // Цвет краев
+uniform float thickness = 0.05; // Толщина линии (от 0.0 до 0.5)
+
+in vec3 localPos;
+
+void main()
+{
+    // Получаем абсолютные значения, чтобы проверять все грани одинаково
+    // localPos меняется от -0.5 до 0.5, делаем его от 0.0 до 0.5
+    vec3 absPos = abs(localPos);
+
+    // Проверяем, сколько компонент координат находятся у самого края (близко к 0.5)
+    // Если две или более координат > (0.5 - thickness), значит это ребро
+    int edges = 0;
+    if (absPos.x > 0.5 - thickness) edges++;
+    if (absPos.y > 0.5 - thickness) edges++;
+    if (absPos.z > 0.5 - thickness) edges++;
+
+    if (edges >= 2) {
+        FragColor = vec4(outlineColor, 1.0); // Рисуем ребро
+    } else {
+        discard; // Выбрасываем пиксель, если это не край
+        // Или FragColor = vec4(0.0, 0.0, 0.0, 0.5); // Сделать полупрозрачное тело
+    }
+}

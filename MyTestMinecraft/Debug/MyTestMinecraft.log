@@ -1,0 +1,65 @@
+﻿  Source.cpp
+E:\myCodeProjects\MyTestMinecraft\MyCameraFly.h(39,43): warning C4244: return: преобразование "const int" в "GLfloat", возможна потеря данных
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyCameraFly.h(71,27): warning C4244: -=: преобразование "double" в "GLfloat", возможна потеря данных
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyCameraFly.h(82,12): warning C4244: =: преобразование "double" в "GLfloat", возможна потеря данных
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyCameraFly.h(83,12): warning C4244: =: преобразование "double" в "GLfloat", возможна потеря данных
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyCameraFly.h(87,19): warning C4244: инициализация: преобразование "double" в "GLfloat", возможна потеря данных
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyCameraFly.h(88,19): warning C4244: инициализация: преобразование "double" в "GLfloat", возможна потеря данных
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyCameraFly.h(90,11): warning C4244: =: преобразование "double" в "GLfloat", возможна потеря данных
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyCameraFly.h(91,11): warning C4244: =: преобразование "double" в "GLfloat", возможна потеря данных
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyCameraFly.h(115,24): warning C4244: инициализация: преобразование "double" в "GLfloat", возможна потеря данных
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyShader.h(51,8): warning C4101: infoLog: неиспользованная локальная переменная
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyShader.h(50,7): warning C4101: success: неиспользованная локальная переменная
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyShader.h(112,8): warning C4101: infoLog: неиспользованная локальная переменная
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyShader.h(111,7): warning C4101: success: неиспользованная локальная переменная
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MySimpleRayCast.h(125,27): warning C4018: <: несоответствие типов со знаком и без знака
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MySimpleRayCast.h(153,27): warning C4018: <: несоответствие типов со знаком и без знака
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MySimpleRayCast.h(151,15): warning C4101: dist: неиспользованная локальная переменная
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyTestFirstPerson.h(158,21): warning C4018: <: несоответствие типов со знаком и без знака
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MySector.h(70,25): warning C4018: <: несоответствие типов со знаком и без знака
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MySector.h(72,54): warning C4838: Преобразование из "const unsigned int" в "int" требует сужающего преобразования.
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyTestInstace.h(154,27): warning C4018: <: несоответствие типов со знаком и без знака
+  (компиляция исходного файла "Source.cpp")
+  
+E:\myCodeProjects\MyTestMinecraft\MyGPUCulling.h(117,22): warning C4244: инициализация: преобразование "double" в "int", возможна потеря данных
+  (компиляция исходного файла "Source.cpp")
+  
+  MyTestMinecraft.vcxproj -> E:\myCodeProjects\MyTestMinecraft\Debug\MyTestMinecraft.exe

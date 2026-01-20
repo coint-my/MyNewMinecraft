@@ -1,0 +1,23 @@
+#version 330 core
+
+layout (location = 0) in vec3 aPos;
+layout (location = 3) in mat4 aModel;
+
+uniform mat4 view;
+uniform mat4 projection;
+uniform float outlineScale;
+
+out vec3 localPos; // Передаем локальные координаты
+
+void main()
+{
+    localPos = aPos;
+    mat4 model = aModel;
+    model[3].xyz *= 1.0; // позиция без изменений
+
+    // масштабируем объект
+    model[0].xyz *= outlineScale;
+    model[1].xyz *= outlineScale;
+    model[2].xyz *= outlineScale;
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}

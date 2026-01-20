@@ -1,0 +1,3 @@
+C:/Users/vovab/Desktop/glewFirstProject2018/glewFirstProject2018/glm/out/build/x64-Debug/CMakeFiles/glm_dummy.dir
+C:/Users/vovab/Desktop/glewFirstProject2018/glewFirstProject2018/glm/out/build/x64-Debug/CMakeFiles/edit_cache.dir
+C:/Users/vovab/Desktop/glewFirstProject2018/glewFirstProject2018/glm/out/build/x64-Debug/CMakeFiles/rebuild_cache.dir

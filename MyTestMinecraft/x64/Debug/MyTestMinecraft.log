@@ -1,0 +1,16 @@
+﻿Source.obj : error LNK2019: ссылка на неразрешенный внешний символ __imp_glViewport в функции main.
+Source.obj : error LNK2019: ссылка на неразрешенный внешний символ glewInit в функции main.
+Source.obj : error LNK2019: ссылка на неразрешенный внешний символ glfwInit в функции main.
+Source.obj : error LNK2019: ссылка на неразрешенный внешний символ glfwTerminate в функции main.
+Source.obj : error LNK2019: ссылка на неразрешенный внешний символ glfwWindowHint в функции main.
+Source.obj : error LNK2019: ссылка на неразрешенный внешний символ glfwCreateWindow в функции main.
+Source.obj : error LNK2019: ссылка на неразрешенный внешний символ glfwWindowShouldClose в функции main.
+Source.obj : error LNK2019: ссылка на неразрешенный внешний символ glfwSetWindowPos в функции main.
+Source.obj : error LNK2019: ссылка на неразрешенный внешний символ glfwGetFramebufferSize в функции main.
+Source.obj : error LNK2019: ссылка на неразрешенный внешний символ glfwPollEvents в функции main.
+Source.obj : error LNK2019: ссылка на неразрешенный внешний символ glfwMakeContextCurrent в функции main.
+Source.obj : error LNK2019: ссылка на неразрешенный внешний символ glfwSwapBuffers в функции main.
+Source.obj : error LNK2001: неразрешенный внешний символ glewExperimental.
+glfw3.lib : warning LNK4272: тип компьютера библиотеки "x86" конфликтует с типом целевого компьютера "x64"
+E:\myCodeProjects\MyTestMinecraft\gl_lib\OpenGL32.Lib : warning LNK4272: тип компьютера библиотеки "x86" конфликтует с типом целевого компьютера "x64"
+E:\myCodeProjects\MyTestMinecraft\x64\Debug\MyTestMinecraft.exe : fatal error LNK1120: неразрешенных внешних элементов: 13
