@@ -4,7 +4,6 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "MyPhysix.h"
 #include "MyTestFirstPerson.h"
-//#include <vector>
 
 class MySector
 {
@@ -27,7 +26,7 @@ public:
 		cubes.reserve(countCube * countCube * countCube);
 		
 		posCollider = glm::vec3(_posSector);
-		halfCollider = glm::vec3(countCube / 2);
+		halfCollider = glm::vec3(countCube / 2) + 3.0f;
 
 		int len = -1;		
 
@@ -76,12 +75,12 @@ public:
 	}
 
 	void myUpdateSector(MyTestFirstPerson& _player, GLFWwindow* _window, 
-		std::unique_ptr<glm::mat4>& _castCub)
+		std::vector<glm::mat4>& _posCubeRay)
 	{
 		if (MyPhysix::AABBIntersect(posCollider, halfCollider, _player.player.position,
 			_player.player.halfSize))
 		{
-			_player.UpdateCharacter(cubes.data(), cubLength, _window, _castCub);
+			_player.UpdateCharacter(cubes.data(), cubLength, _window, _posCubeRay);
 		}
 	}
 };

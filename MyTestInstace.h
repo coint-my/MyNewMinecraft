@@ -1,14 +1,13 @@
 #pragma once
 
-//#include "vector"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "gl/glew.h"
 #include "MyPrimitiveCube.h"
 #include "MySimpleRayCast.h"
 #include "MyPhysix.h"
-//#include "MyTestFirstPerson.h"
 #include "MySector.h"
+#include "MyShader.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb-master/stb_image.h"
@@ -100,10 +99,6 @@ public:
 
     inline GLuint myGetVAO() const { return cub.myGetVAO(); }
 
-    //inline int myGetIndexCub() const { return indCub; }
-
-    //inline std::unique_ptr<glm::mat4> myGetMatrixRayCastCub() const { return rayCastCub; }
-
     void myBindTexture(MyShader& _shader)
     {
         glActiveTexture(GL_TEXTURE1);
@@ -111,38 +106,27 @@ public:
         _shader.setInt("uTexArray", 1);
     }
 
+    void myCreateSector(glm::vec3 _pos)
+    {
+        MySector sector;
+        sector.myInitialize(_pos * (float)sector.countCube);
+        sector.myAddInRender(listInstanceData);
+        listSector.push_back(sector);
+    }
+
 	void myInitialize(GLFWwindow* _window, MyTestFirstPerson& _testPerson)
 	{
-        //rayCastCub = nullptr;
         cub.myInitialize();
 
-        MySector sectorOne;
-        sectorOne.myInitialize();
-        sectorOne.myAddInRender(listInstanceData);
-        listSector.push_back(sectorOne);
-
-        MySector sectorTwo;
-        sectorTwo.myInitialize(glm::vec3((float)sectorTwo.countCube, 0.0f, 0.0f));
-        sectorTwo.myAddInRender(listInstanceData);
-        listSector.push_back(sectorTwo);
-
-        MySector sectorThree;
-        sectorThree.myInitialize(glm::vec3((float)sectorThree.countCube, 0.0f,
-            (float)sectorThree.countCube));
-        sectorThree.myAddInRender(listInstanceData);
-        listSector.push_back(sectorThree);
-
-        MySector sectorFour;
-        sectorFour.myInitialize(glm::vec3(-(float)sectorFour.countCube, 0.0f,
-            0.0f));
-        sectorFour.myAddInRender(listInstanceData);
-        listSector.push_back(sectorFour);
-
-        MySector sectorFive;
-        sectorFive.myInitialize(glm::vec3(-(float)sectorFive.countCube, 0.0f,
-            -(float)sectorFive.countCube));
-        sectorFive.myAddInRender(listInstanceData);
-        listSector.push_back(sectorFive);
+        myCreateSector(glm::vec3(0));
+        myCreateSector(glm::vec3(0, 0, 1));
+        myCreateSector(glm::vec3(0, 0, -1));
+        myCreateSector(glm::vec3(1, 0, 0));
+        myCreateSector(glm::vec3(1, 0, 1));
+        myCreateSector(glm::vec3(1, 0, -1));
+        myCreateSector(glm::vec3(-1, 0, 0));
+        myCreateSector(glm::vec3(-1, 0, 1));
+        myCreateSector(glm::vec3(-1, 0, -1));
 
         myLoadTexture();
 	}
@@ -151,9 +135,28 @@ public:
     {
         _person.MyCharacterHandle(_window);
 
+        std::vector<glm::mat4> posCubeRay;
+        float closestDistanceCast = 10.0f; // Максимальная дальность прицела
+        rayCastCub = nullptr;
+
         for (int i = 0; i < listSector.size(); i++)
         {
-            listSector[i].myUpdateSector(_person, _window, rayCastCub);
+            listSector[i].myUpdateSector(_person, _window, posCubeRay);
+        }
+
+        for (size_t i = 0; i < posCubeRay.size(); i++)
+        {
+            float t;
+
+            if (MySimpleRayCast::intersectAABB(_person.camFps.myGetPos(), _person.camFps.myGetFront(), 
+                posCubeRay[i][3], t))
+            {
+                if (t < closestDistanceCast)
+                {
+                    closestDistanceCast = t;
+                    rayCastCub = std::make_unique<glm::mat4>(posCubeRay[i]);
+                }
+            }
         }
     }
 };

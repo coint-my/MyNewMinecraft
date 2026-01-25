@@ -18,7 +18,6 @@ private:
 
 public:
 	MyCameraFPS camFps;
-	MySimpleRayCast rayCast;
 	MyPhysix::CharacterController player;
 
 	MyTestFirstPerson(const glm::vec3& _pos) : camFps(_pos)
@@ -150,25 +149,15 @@ public:
 	}
 
 	void UpdateCharacter(MyPhysix::MyCube* world, const GLuint _count, GLFWwindow* window,
-		std::unique_ptr<glm::mat4>& _castCube)
+		std::vector<glm::mat4>& _posCubeRay)
 	{
-		float closestDistanceCast = 10.0f; // Максимальная дальность прицела
-		_castCube = nullptr;
-
 		for (int i = 0; i < _count; i++)
 		{
 			//raycast with world
-			float t;
-
-			if (glm::distance(camFps.myGetPos(), glm::vec3(world[i].model[3])) < closestDistanceCast &&
-				world[i].isVisible &&
-				rayCast.intersectAABB(camFps.myGetPos(), camFps.myGetFront(), world[i].model[3], t))
+			if (world[i].isVisible && AABBIntersect(player.position, glm::vec3(3),
+				world[i].boxPhysix.position, world[i].boxPhysix.collider.halfSize))
 			{
-				if (t < closestDistanceCast)
-				{
-					closestDistanceCast = t;
-					_castCube = std::make_unique<glm::mat4>(world[i].model);
-				}
+				_posCubeRay.push_back(world[i].model);
 			}
 			//player collision with world
 			if (world[i].isVisible && glm::distance(player.position, world[i].boxPhysix.position) < 2.0f)

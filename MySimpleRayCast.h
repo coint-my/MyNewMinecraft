@@ -37,7 +37,7 @@ public:
         return true;
     }
 
-    bool intersectAABB(glm::vec3 rayOrigin, glm::vec3 rayDir, glm::vec3 box, float& t) 
+    static bool intersectAABB(glm::vec3 rayOrigin, glm::vec3 rayDir, glm::vec3 box, float& t) 
     {
         // ВАЖНО: rayDir должен быть нормализован перед вызовом!
         glm::vec3 boxMax = box + glm::vec3(0.5f);
