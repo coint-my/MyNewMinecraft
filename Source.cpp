@@ -108,14 +108,26 @@ void myEventKey(GLFWwindow* _window, int _key, int _scancode, int _action, int _
 	if (_key == GLFW_KEY_ESCAPE && _action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
 
-	//cameraFly.myEventKey(_window, _key, _scancode, _action, _mode);
+	if (_key == GLFW_KEY_Q && _action == GLFW_RELEASE)
+	{
+		if (InstanceData* data = testInstance.myOffCube())
+		{
+			myCulling.myChangeCub(*data, testInstance.rayCastCub->first.index);
+		}
+	}
+	else if (_key == GLFW_KEY_E && _action == GLFW_RELEASE)
+	{
+		if (InstanceData* data = testInstance.myOnCube())
+		{
+			myCulling.myChangeCub(*data, testInstance.rayCastCubAdd->first.index);
+		}
+	}
+
 	firstPerson.myEventKey(_key, _scancode, _action, _mode);
-	//printf("key = {%i}, action = {%i}\n", _scancode, _action);
 }
 
 void myEventMouseButton(GLFWwindow* _window, int _button, int _action, int _mods)
 {
-	//cameraFly.myEventMouseButton(_window, _button, _action, _mods);
 	firstPerson.myEventMouseButton(_window, _button, _action, _mods);
 }
 
@@ -193,7 +205,7 @@ void myRender()
 	//---------test end stencil
 	if (testInstance.rayCastCub)
 	{
-		outline.myUpdateMatrix(*testInstance.rayCastCub);
+		outline.myUpdateMatrix(testInstance.rayCastCub->first.model);
 
 		outline.myRenderOutline(firstPerson.camFps);
 	}

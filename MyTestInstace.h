@@ -20,7 +20,8 @@ private:
     MyPrimitiveCube cub;
     MyPhysix myPhysix;
 public:
-    std::unique_ptr<glm::mat4> rayCastCub;
+    std::unique_ptr<std::pair<MyPhysix::MyCube, GLuint>> rayCastCub;
+    std::unique_ptr<std::pair<MyPhysix::MyCube, GLuint>> rayCastCubAdd;
     std::vector<InstanceData> listInstanceData;
     std::vector<MySector> listSector;
 private:
@@ -95,8 +96,6 @@ public:
         std::cout << "delete TestInstance" << std::endl;
     }
 
-	const int INSTANCE_COUNT = 16384;
-
     inline GLuint myGetVAO() const { return cub.myGetVAO(); }
 
     void myBindTexture(MyShader& _shader)
@@ -104,6 +103,40 @@ public:
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D_ARRAY, texArray);
         _shader.setInt("uTexArray", 1);
+    }
+
+    InstanceData* myOffCube()
+    {
+        if (rayCastCub)
+        {
+            InstanceData& data = listInstanceData[rayCastCub->first.index];
+            data.isVisible = false;
+
+            GLuint indexSectorCub = rayCastCub->first.index - (listSector[rayCastCub->second].cubLength *
+                rayCastCub->second);
+
+            listSector[rayCastCub->second].cubes[indexSectorCub].isVisible = false;
+
+            return &data;
+        }
+        return nullptr;
+    }
+
+    InstanceData* myOnCube()
+    {
+        if (rayCastCubAdd)
+        {
+            InstanceData& data = listInstanceData[rayCastCubAdd->first.index];
+            data.isVisible = true;
+
+            GLuint indexSectorCub = rayCastCubAdd->first.index -
+                (listSector[rayCastCubAdd->second].cubLength * rayCastCubAdd->second);
+
+            listSector[rayCastCubAdd->second].cubes[indexSectorCub].isVisible = true;
+
+            return &data;
+        }
+        return nullptr;
     }
 
     void myCreateSector(glm::vec3 _pos)
@@ -131,32 +164,57 @@ public:
         myLoadTexture();
 	}
 
+    void myAddCubANormal(const glm::vec3 _norm, std::vector<std::pair<MyPhysix::MyCube, GLuint>>& _cubes,
+        std::unique_ptr<std::pair<MyPhysix::MyCube, GLuint>>& _ptrAddCub)
+    {
+        glm::vec3 addCub = rayCastCub->first.boxPhysix.position + _norm;
+
+        for (size_t i = 0; i < _cubes.size(); i++)
+        {
+            if (_cubes[i].first.boxPhysix.position == addCub)
+            {
+                _ptrAddCub = std::make_unique<std::pair<MyPhysix::MyCube, GLuint>>(_cubes[i]);
+            }
+        }
+    }
+
     void myUpdate(MyTestFirstPerson& _person, GLFWwindow* _window)
     {
         _person.MyCharacterHandle(_window);
 
-        std::vector<glm::mat4> posCubeRay;
+        std::vector<std::pair<MyPhysix::MyCube, GLuint>> pairCubeRay;
         float closestDistanceCast = 10.0f; // Максимальная дальность прицела
         rayCastCub = nullptr;
 
         for (int i = 0; i < listSector.size(); i++)
         {
-            listSector[i].myUpdateSector(_person, _window, posCubeRay);
+            listSector[i].myUpdateSector(_person, _window, pairCubeRay, i);
         }
 
-        for (size_t i = 0; i < posCubeRay.size(); i++)
+        for (size_t i = 0; i < pairCubeRay.size(); i++)
         {
             float t;
 
-            if (MySimpleRayCast::intersectAABB(_person.camFps.myGetPos(), _person.camFps.myGetFront(), 
-                posCubeRay[i][3], t))
+            if (pairCubeRay[i].first.isVisible &&
+                MySimpleRayCast::intersectAABB(_person.camFps.myGetPos(), _person.camFps.myGetFront(), 
+                pairCubeRay[i].first.model[3], t))
             {
                 if (t < closestDistanceCast)
                 {
                     closestDistanceCast = t;
-                    rayCastCub = std::make_unique<glm::mat4>(posCubeRay[i]);
+                    rayCastCub = std::make_unique<std::pair<MyPhysix::MyCube, GLuint>>(pairCubeRay[i]);
                 }
             }
+        }
+
+        if (rayCastCub)
+        {
+            glm::vec3 hitPoint = _person.camFps.myGetPos() + _person.camFps.myGetFront() * 
+                closestDistanceCast;
+
+            glm::vec3 normalCub = MySimpleRayCast::getNormal(hitPoint, rayCastCub->first.model[3]);
+            rayCastCubAdd = nullptr;
+            myAddCubANormal(normalCub, pairCubeRay, rayCastCubAdd);
         }
     }
 };

@@ -55,6 +55,17 @@ public:
         glBufferData(GL_SHADER_STORAGE_BUFFER, _count * sizeof(SortData), nullptr, GL_DYNAMIC_COPY);
     }
 
+    void myChangeCub(const InstanceData& _cubData, const GLuint _index)
+    {
+        // 1. Копируем только этот куб в GPU
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, inputSSBO);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER,
+            _index * sizeof(InstanceData),      // Смещение до нужного куба
+            sizeof(InstanceData),               // Размер одного куба
+            &_cubData                           // Откуда берем данные
+        );
+    }
+
     void myInitialize(const std::vector<InstanceData>& _listInstance)
     {
         // 1. Буфер со всеми данными (заполняется один раз или при изменениях)

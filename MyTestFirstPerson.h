@@ -149,15 +149,17 @@ public:
 	}
 
 	void UpdateCharacter(MyPhysix::MyCube* world, const GLuint _count, GLFWwindow* window,
-		std::vector<glm::mat4>& _posCubeRay)
+		std::vector<std::pair<MyPhysix::MyCube, GLuint>>& _pairCubeRay, GLuint _indexSector)
 	{
 		for (int i = 0; i < _count; i++)
 		{
 			//raycast with world
-			if (world[i].isVisible && AABBIntersect(player.position, glm::vec3(3),
-				world[i].boxPhysix.position, world[i].boxPhysix.collider.halfSize))
+			if (/*world[i].isVisible && */AABBIntersect(player.position, glm::vec3(3),
+				world[i].model[3], world[i].boxPhysix.collider.halfSize))
 			{
-				_posCubeRay.push_back(world[i].model);
+				world[i].index = i + (_count * _indexSector);
+				std::pair<MyPhysix::MyCube, GLuint> pair = { world[i], _indexSector };
+				_pairCubeRay.push_back(pair);
 			}
 			//player collision with world
 			if (world[i].isVisible && glm::distance(player.position, world[i].boxPhysix.position) < 2.0f)

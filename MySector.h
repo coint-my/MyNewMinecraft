@@ -45,6 +45,7 @@ public:
 					cub.isVisible = false;
 					cub.model = glm::translate(glm::mat4(1.0f), pos);
 					cub.texture = 0;
+					cub.index = len;
 					cub.boxPhysix.position = pos;
 					cub.boxPhysix.collider.halfSize = glm::vec3(0.5f);
 					cub.boxPhysix.friction = 0.1f;
@@ -75,12 +76,12 @@ public:
 	}
 
 	void myUpdateSector(MyTestFirstPerson& _player, GLFWwindow* _window, 
-		std::vector<glm::mat4>& _posCubeRay)
+		std::vector<std::pair<MyPhysix::MyCube, GLuint>>& _posCubeRay, GLuint _indexSector)
 	{
 		if (MyPhysix::AABBIntersect(posCollider, halfCollider, _player.player.position,
 			_player.player.halfSize))
 		{
-			_player.UpdateCharacter(cubes.data(), cubLength, _window, _posCubeRay);
+			_player.UpdateCharacter(cubes.data(), cubLength, _window, _posCubeRay, _indexSector);
 		}
 	}
 };

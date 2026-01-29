@@ -113,7 +113,35 @@ public:
         return false;
     }
 
-    int myUpdate(const std::vector<InstanceData>& _list, const MyCamera& _cam)
+    static glm::vec3 getNormal(glm::vec3 hitPoint, glm::vec3 cubePos) 
+    {
+        // Переводим точку в локальное пространство куба (от -0.5 до 0.5)
+        glm::vec3 localPoint = hitPoint - cubePos;
+
+        glm::vec3 normal(0.0f);
+        float minDistance = 1.0f; // Начальное значение
+
+        // Проверяем, к какой из 6 плоскостей точка ближе всего
+        // 0.5 — это расстояние от центра до грани куба 1x1x1
+        float distanceX = 0.5f - std::abs(localPoint.x);
+        float distanceY = 0.5f - std::abs(localPoint.y);
+        float distanceZ = 0.5f - std::abs(localPoint.z);
+
+        // Ищем минимальное расстояние (значит, мы на этой грани)
+        float minTarget = std::min({ distanceX, distanceY, distanceZ });
+
+        if (minTarget == distanceX)
+            normal = glm::vec3(localPoint.x > 0 ? 1 : -1, 0, 0);
+        else if (minTarget == distanceY)
+            normal = glm::vec3(0, localPoint.y > 0 ? 1 : -1, 0);
+        else if (minTarget == distanceZ)
+            normal = glm::vec3(0, 0, localPoint.z > 0 ? 1 : -1);
+
+        return normal;
+    }
+
+
+    /*int myUpdate(const std::vector<InstanceData>& _list, const MyCamera& _cam)
     {
         glm::vec3 localOrigin = _cam.myGetPos();
         glm::vec3 localDir = _cam.myGetFront();
@@ -139,9 +167,9 @@ public:
         }
 
         return hitIndex;
-    }
+    }*/
 
-    int myUpdate(const std::vector<glm::mat4>& _list, const MyCamera& _cam)
+    /*int myUpdate(const std::vector<glm::mat4>& _list, const MyCamera& _cam)
     {
         glm::vec3 localOrigin = _cam.myGetPos();
         glm::vec3 localDir = _cam.myGetFront();
@@ -154,22 +182,22 @@ public:
         {
             if (glm::distance(glm::vec3(_list[i][3]), localOrigin) < closestDistance)
             {
-                /*if (checkIntersectionOBB(localOrigin, localDir, _list[i], dist))
+                if (checkIntersectionOBB(localOrigin, localDir, _list[i], dist))
                 {
                     if (dist < closestDistance)
                     {
                         closestDistance = dist;
                         hitIndex = i;
                     }
-                }*/
-                /*if (intersectSphere(localOrigin, localDir, _list[i][3], 0.87f))
+                }
+                if (intersectSphere(localOrigin, localDir, _list[i][3], 0.87f))
                 {
                     closestDistance = dist;
                     hitIndex = i;
-                }*/
+                }
             }
         }
 
         return hitIndex;
-    }
+    }*/
 };

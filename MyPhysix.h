@@ -48,6 +48,8 @@ public:
         unsigned int texture;
         //существует куб
         bool isVisible;
+        //индекс
+        GLuint index;
     };
 
     static bool AABBIntersect(glm::vec3 posA, glm::vec3 halfA, glm::vec3 posB, glm::vec3 halfB)
