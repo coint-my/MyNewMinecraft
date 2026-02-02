@@ -38,8 +38,11 @@ MyTestShadow shadow;
 //outline class
 MyOutlineShader outline;
 //оптимизация отрисовки кубов
-MyGPUCulling myCulling;
+//MyGPUCulling myCulling;
 //источники света
+//тест direct instance
+MyDirectInstansing dInstance;
+MyShader renderShader;
 
 GLuint VAO, VBO;
 
@@ -82,6 +85,7 @@ void myGenerateVao()
 	//----------------------------------------
 	shaderSimple = MyShader("shader/selfShaderV.txt", "shader/selfShaderF.txt");
 	shaderInstance = MyShader("shader/instanceShaderV.txt", "shader/simpleShaderF.txt");
+	renderShader = MyShader("shader/directInstanceV.txt", "shader/simpleShaderF.txt");
 	//---------------------------------------
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -97,8 +101,6 @@ void myGenerateVao()
 	testInstance.myInitialize(window, firstPerson);
 	shadow.myInitialize();
 	outline.myInitialize(testCube.myGetVAO());
-	myCulling = MyGPUCulling("shader/testCullingV.txt");
-	myCulling.myInitialize(testInstance.listInstanceData);
 
 	glEnable(GL_DEPTH_TEST);
 }
@@ -110,16 +112,22 @@ void myEventKey(GLFWwindow* _window, int _key, int _scancode, int _action, int _
 
 	if (_key == GLFW_KEY_Q && _action == GLFW_RELEASE)
 	{
-		if (InstanceData* data = testInstance.myOffCube())
+		if (testInstance.rayCastCub)
 		{
-			myCulling.myChangeCub(*data, testInstance.rayCastCub->first.index);
+			testInstance.rayCastCub->first.isVisible = false;
+
+			testInstance.myChangeCub(testInstance.rayCastCub->first,
+				testInstance.rayCastCub->second);
 		}
 	}
 	else if (_key == GLFW_KEY_E && _action == GLFW_RELEASE)
 	{
-		if (InstanceData* data = testInstance.myOnCube())
+		if (testInstance.rayCastCubAdd)
 		{
-			myCulling.myChangeCub(*data, testInstance.rayCastCubAdd->first.index);
+			testInstance.rayCastCubAdd->first.isVisible = true;
+			
+			testInstance.myChangeCub(testInstance.rayCastCubAdd->first, 
+				testInstance.rayCastCubAdd->second);
 		}
 	}
 
@@ -146,15 +154,23 @@ void myRender()
 {
 	//----------------test shadow
 	shadow.myUpdateMatrixLight(firstPerson.camFps);
+	testInstance.myRenderSectorCurrent();
+	/*
+	glBindVertexArray(testInstance.myGetVAO());
+	glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, testInstance.listSector.size() *
+		testInstance.listSector[0].cubLength);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindVertexArray(0);*/
 
 	/*glBindVertexArray(testInstance.myGetVAO());
 	glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, testInstance.INSTANCE_COUNT);*/
 
 	// Используем тот же Indirect Call
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, myCulling.outputSSBO); // Видимые кубы
-	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, myCulling.commandBuffer);
-	glBindVertexArray(testInstance.myGetVAO());
-	glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 0);
+	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, myCulling.outputSSBO); // Видимые кубы
+	//glBindBuffer(GL_DRAW_INDIRECT_BUFFER, myCulling.commandBuffer);
+	//glBindVertexArray(testInstance.myGetVAO());
+	//glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 0);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindVertexArray(0);
@@ -162,7 +178,7 @@ void myRender()
 
 	glViewport(0, 0, MyScrren::WID, MyScrren::HEI);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//cameraFly.myUpdateCamera();
 	firstPerson.myUpdateCamera();
@@ -172,21 +188,16 @@ void myRender()
 	glm::mat4 projection = firstPerson.camFps.myGetPerspective();//cameraFly.myGetPerspective();
 	
 	//---------shadow
-	shadow.myActivateShadowTexture(shaderInstance);
+	shadow.myActivateShadowTexture(renderShader);
 	//---------shadow
 
 	//---------test Culling
-	myCulling.myRenderStart(firstPerson.camFps);
+	//myCulling.myRenderStart(firstPerson.camFps);
 	//---------end Culling
 	
 	//---------Draw Instance
-	shaderInstance.use();
-	shaderInstance.setMat4("view", view);
-	shaderInstance.setMat4("projection", projection);
-	shaderInstance.setVec3("viewPos", firstPerson.camFps.myGetPos()/*cameraFly.myGetPos()*/);
-	shaderInstance.setMat4("lightSpaceMatrix", shadow.myGetSpaceMatrix());
 
-	testInstance.myBindTexture(shaderInstance);
+	testInstance.myBindTexture(renderShader);
 
 	// GL_CW (Clockwise): Обход вершин по часовой стрелке = передняя грань
 	glFrontFace(GL_CCW);
@@ -194,12 +205,19 @@ void myRender()
 	// 3. Указываем, какие грани отсекать (обычно задние)
 	glCullFace(GL_BACK); // Или GL_FRONT, если задали GL_CW и хотите отсекать то, что увидите
 
-	// Привязываем буфер с видимыми матрицами к binding 1, как указано в шейдере
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, myCulling.outputSSBO);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, myCulling.sortSSBO);
-	glBindVertexArray(testInstance.myGetVAO());
-	myCulling.myRenderEnd();
-	//glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, testInstance.INSTANCE_COUNT);
+	//test direct instance
+	renderShader.use();
+	renderShader.setMat4("view", view);
+	renderShader.setMat4("projection", projection);
+	renderShader.setVec3("camPos", firstPerson.camFps.myGetPos());
+	renderShader.setMat4("lightSpaceMatrix", shadow.myGetSpaceMatrix());
+
+	// Привязываем текстуру
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, testInstance.texArray);
+	renderShader.setInt("uTexArray", 1);
+
+	testInstance.myRenderer(projection * view);
 	//---------End Draw Instance
 
 	//---------test end stencil

@@ -24,14 +24,13 @@ public:
     void myUpdateMatrixLight(const MyCamera& _camera)
     {
         // Позиция directional света (как солнце)
-        //glm::vec3 lightPos(_camera.myGetPosition());
         glm::vec3 lightPos(_camera.myGetPos());
 
         // Ортографическая проекция (для directional light)
         glm::mat4 lightProjection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.1f, 50.f);
 
         // Камера света
-        glm::mat4 lightView = glm::lookAt(lightPos + glm::vec3(-10, 20, -10), lightPos,
+        glm::mat4 lightView = glm::lookAt(lightPos + glm::vec3(-10, 40, -10), lightPos,
             glm::vec3(0, 1, 0));
 
         // Итоговая матрица

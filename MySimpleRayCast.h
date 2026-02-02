@@ -3,7 +3,6 @@
 #include "glm/glm.hpp"
 #include "MyCameraFly.h"
 #include "MyInstanceData.h"
-#include <vector>
 #include <iostream>
 
 struct AABB

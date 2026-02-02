@@ -10,15 +10,25 @@ class MySector
 public:
 	static const int countCube = 16;
 	unsigned int cubLength;
+	GLuint ssbo;
 
-	std::vector<MyPhysix::MyCube> cubes;
+	std::vector<InstanceData> cubes;
 
 	glm::vec3 posCollider;
 	glm::vec3 halfCollider;
 
 	~MySector()
 	{
+		cubes.clear();
+	}
 
+private:
+	void myInitializeSSBO()
+	{
+		glGenBuffers(1, &ssbo);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, cubes.size() * sizeof(InstanceData),
+			cubes.data(), GL_STATIC_DRAW);
 	}
 
 	void myInitialize(const glm::vec3& _posSector = glm::vec3())
@@ -41,21 +51,16 @@ public:
 					glm::vec3 pos = glm::vec3((float)x, (float)y, (float)z);
 					pos = pos + posCollider - glm::vec3(countCube / 2);
 
-					MyPhysix::MyCube cub;
+					InstanceData cub;
 					cub.isVisible = false;
 					cub.model = glm::translate(glm::mat4(1.0f), pos);
-					cub.texture = 0;
+					cub.texIndex = 0;
 					cub.index = len;
-					cub.boxPhysix.position = pos;
-					cub.boxPhysix.collider.halfSize = glm::vec3(0.5f);
-					cub.boxPhysix.friction = 0.1f;
-					cub.boxPhysix.mass = 0.0f;
-					cub.boxPhysix.isStatic = true;
 
 					if (y < countCube / 2)
 					{
 						cub.isVisible = true;
-						cub.texture = 1;
+						cub.texIndex = 1;
 					}
 					cubes.push_back(cub);
 				}
@@ -65,23 +70,29 @@ public:
 		cubLength = len;
 	}
 
-	void myAddInRender(std::vector<InstanceData>& _renderer) const
+public:
+
+	void myCreateSector(const glm::vec3& _pos = glm::vec3(0))
 	{
-		for (int cub = 0; cub < cubLength; cub++)
-		{
-			InstanceData data = { cubes[cub].model, cubes[cub].texture, cubes[cub].isVisible };
-			
-			_renderer.push_back(data);
-		}
+		myInitialize(_pos);
+		myInitializeSSBO();
 	}
 
 	void myUpdateSector(MyTestFirstPerson& _player, GLFWwindow* _window, 
-		std::vector<std::pair<MyPhysix::MyCube, GLuint>>& _posCubeRay, GLuint _indexSector)
+		std::vector<std::pair<InstanceData&, GLuint>>& _posCubeRay, GLuint _indexSector)
 	{
 		if (MyPhysix::AABBIntersect(posCollider, halfCollider, _player.player.position,
 			_player.player.halfSize))
 		{
 			_player.UpdateCharacter(cubes.data(), cubLength, _window, _posCubeRay, _indexSector);
 		}
+	}
+
+	void myRenderSector()
+	{
+		// Привязываем буфер с данными
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
+
+		glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, cubes.size());
 	}
 };

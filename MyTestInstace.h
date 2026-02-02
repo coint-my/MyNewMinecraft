@@ -12,17 +12,18 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb-master/stb_image.h"
 
+struct Plane { glm::vec3 normal; float distance; };
+
 class MyTestInstance
 {
 private:
-    GLuint texArray;
 
     MyPrimitiveCube cub;
     MyPhysix myPhysix;
 public:
-    std::unique_ptr<std::pair<MyPhysix::MyCube, GLuint>> rayCastCub;
-    std::unique_ptr<std::pair<MyPhysix::MyCube, GLuint>> rayCastCubAdd;
-    std::vector<InstanceData> listInstanceData;
+    GLuint texArray;
+    std::unique_ptr<std::pair<InstanceData&, GLuint>> rayCastCub;
+    std::unique_ptr<std::pair<InstanceData&, GLuint>> rayCastCubAdd;
     std::vector<MySector> listSector;
 private:
     
@@ -53,9 +54,9 @@ private:
         glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, width, height, 4);
 
         // Загружаем каждую текстуру в свой слой
-        listInstanceData[0].texIndex = 1;
-        listInstanceData[1].texIndex = 2;
-        listInstanceData[2].texIndex = 3;
+        //listInstanceData[0].texIndex = 1;
+        //listInstanceData[1].texIndex = 2;
+        //listInstanceData[2].texIndex = 3;
         // data — пиксели i-й текстуры
         glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, width, height, 1, GL_RGBA,
             GL_UNSIGNED_BYTE, imageData1);
@@ -81,7 +82,7 @@ private:
 public:
     ~MyTestInstance()
     {
-        listInstanceData.clear();
+        //listInstanceData.clear();
         /*for (MyPhysix::PhysicsBody* ptr : listPhysix)
         {
             if ((*ptr).isStatic)
@@ -105,45 +106,65 @@ public:
         _shader.setInt("uTexArray", 1);
     }
 
-    InstanceData* myOffCube()
+private:
+    std::vector<Plane> myGetFrustumPlanes(const glm::mat4& viewProj) 
     {
-        if (rayCastCub)
+        std::vector<Plane> planes(6);
+        // Матрица в GLM column-major, поэтому индексы такие:
+        // Left, Right, Bottom, Top, Near, Far
+        planes[0] = { glm::vec3(viewProj[0][3] + viewProj[0][0], viewProj[1][3] + 
+            viewProj[1][0], viewProj[2][3] + viewProj[2][0]), viewProj[3][3] + viewProj[3][0] };
+        planes[1] = { glm::vec3(viewProj[0][3] - viewProj[0][0], viewProj[1][3] - 
+            viewProj[1][0], viewProj[2][3] - viewProj[2][0]), viewProj[3][3] - viewProj[3][0] };
+        planes[2] = { glm::vec3(viewProj[0][3] + viewProj[0][1], viewProj[1][3] + 
+            viewProj[1][1], viewProj[2][3] + viewProj[2][1]), viewProj[3][3] + viewProj[3][1] };
+        planes[3] = { glm::vec3(viewProj[0][3] - viewProj[0][1], viewProj[1][3] - 
+            viewProj[1][1], viewProj[2][3] - viewProj[2][1]), viewProj[3][3] - viewProj[3][1] };
+        planes[4] = { glm::vec3(viewProj[0][3] + viewProj[0][2], viewProj[1][3] + 
+            viewProj[1][2], viewProj[2][3] + viewProj[2][2]), viewProj[3][3] + viewProj[3][2] };
+        planes[5] = { glm::vec3(viewProj[0][3] - viewProj[0][2], viewProj[1][3] - 
+            viewProj[1][2], viewProj[2][3] - viewProj[2][2]), viewProj[3][3] - viewProj[3][2] };
+
+        // Нормализуем плоскости
+        for (auto& p : planes) 
         {
-            InstanceData& data = listInstanceData[rayCastCub->first.index];
-            data.isVisible = false;
-
-            GLuint indexSectorCub = rayCastCub->first.index - (listSector[rayCastCub->second].cubLength *
-                rayCastCub->second);
-
-            listSector[rayCastCub->second].cubes[indexSectorCub].isVisible = false;
-
-            return &data;
+            float length = glm::length(p.normal);
+            p.normal /= length;
+            p.distance /= length;
         }
-        return nullptr;
+        return planes;
     }
 
-    InstanceData* myOnCube()
+    bool isSphereInFrustum(const glm::vec3& center, float radius, const std::vector<Plane>& planes) 
     {
-        if (rayCastCubAdd)
+        for (const auto& plane : planes) 
         {
-            InstanceData& data = listInstanceData[rayCastCubAdd->first.index];
-            data.isVisible = true;
-
-            GLuint indexSectorCub = rayCastCubAdd->first.index -
-                (listSector[rayCastCubAdd->second].cubLength * rayCastCubAdd->second);
-
-            listSector[rayCastCubAdd->second].cubes[indexSectorCub].isVisible = true;
-
-            return &data;
+            // Расстояние от центра сферы до плоскости
+            if (glm::dot(plane.normal, center) + plane.distance < -radius) 
+            {
+                return false; // Сфера полностью за плоскостью
+            }
         }
-        return nullptr;
+        return true; // Сфера пересекает или внутри пирамиды
+    }
+
+public:
+
+    void myChangeCub(const InstanceData& _cubData, GLuint _sector)
+    {
+        // 1. Копируем только этот куб в GPU
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, listSector[_sector].ssbo);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER,
+            _cubData.index * sizeof(InstanceData),      // Смещение до нужного куба
+            sizeof(InstanceData),                       // Размер одного куба
+            &_cubData                                   // Откуда берем данные
+        );
     }
 
     void myCreateSector(glm::vec3 _pos)
     {
         MySector sector;
-        sector.myInitialize(_pos * (float)sector.countCube);
-        sector.myAddInRender(listInstanceData);
+        sector.myCreateSector(_pos * (float)sector.countCube);
         listSector.push_back(sector);
     }
 
@@ -151,29 +172,27 @@ public:
 	{
         cub.myInitialize();
 
-        myCreateSector(glm::vec3(0));
-        myCreateSector(glm::vec3(0, 0, 1));
-        myCreateSector(glm::vec3(0, 0, -1));
-        myCreateSector(glm::vec3(1, 0, 0));
-        myCreateSector(glm::vec3(1, 0, 1));
-        myCreateSector(glm::vec3(1, 0, -1));
-        myCreateSector(glm::vec3(-1, 0, 0));
-        myCreateSector(glm::vec3(-1, 0, 1));
-        myCreateSector(glm::vec3(-1, 0, -1));
+        for (int z = -5; z < 5; z++)
+        {
+            for (int x = -5; x < 5; x++)
+            {
+                myCreateSector(glm::vec3(x, 0, z));
+            }
+        }
 
         myLoadTexture();
 	}
 
-    void myAddCubANormal(const glm::vec3 _norm, std::vector<std::pair<MyPhysix::MyCube, GLuint>>& _cubes,
-        std::unique_ptr<std::pair<MyPhysix::MyCube, GLuint>>& _ptrAddCub)
+    void myAddCubANormal(const glm::vec3 _norm, std::vector<std::pair<InstanceData&, GLuint>>& _cubes,
+        std::unique_ptr<std::pair<InstanceData&, GLuint>>& _ptrAddCub)
     {
-        glm::vec3 addCub = rayCastCub->first.boxPhysix.position + _norm;
+        glm::vec3 addCub = glm::vec3(rayCastCub->first.model[3]) + _norm;
 
         for (size_t i = 0; i < _cubes.size(); i++)
         {
-            if (_cubes[i].first.boxPhysix.position == addCub)
+            if (glm::vec3(_cubes[i].first.model[3]) == addCub)
             {
-                _ptrAddCub = std::make_unique<std::pair<MyPhysix::MyCube, GLuint>>(_cubes[i]);
+                _ptrAddCub = std::make_unique<std::pair<InstanceData&, GLuint>>(_cubes[i]);
             }
         }
     }
@@ -182,7 +201,7 @@ public:
     {
         _person.MyCharacterHandle(_window);
 
-        std::vector<std::pair<MyPhysix::MyCube, GLuint>> pairCubeRay;
+        std::vector<std::pair<InstanceData&, GLuint>> pairCubeRay;
         float closestDistanceCast = 10.0f; // Максимальная дальность прицела
         rayCastCub = nullptr;
 
@@ -202,7 +221,7 @@ public:
                 if (t < closestDistanceCast)
                 {
                     closestDistanceCast = t;
-                    rayCastCub = std::make_unique<std::pair<MyPhysix::MyCube, GLuint>>(pairCubeRay[i]);
+                    rayCastCub = std::make_unique<std::pair<InstanceData&, GLuint>>(pairCubeRay[i]);
                 }
             }
         }
@@ -215,6 +234,28 @@ public:
             glm::vec3 normalCub = MySimpleRayCast::getNormal(hitPoint, rayCastCub->first.model[3]);
             rayCastCubAdd = nullptr;
             myAddCubANormal(normalCub, pairCubeRay, rayCastCubAdd);
+        }
+    }
+
+    void myRenderSectorCurrent()
+    {
+        glBindVertexArray(myGetVAO());
+        listSector[55].myRenderSector();
+    }
+
+    void myRenderer(const glm::mat4& _frustumMatrix)
+    {
+        auto planes = myGetFrustumPlanes(_frustumMatrix);
+        //float sectorRadius = 14.0f; // Для сектора 16x16x16
+        float sectorRadius = 10.0f;
+        glBindVertexArray(myGetVAO());
+
+        for (auto& sector : listSector)
+        {
+            if (!isSphereInFrustum(sector.posCollider, sectorRadius, planes))
+                continue; // Пропускаем весь сектор (тысячи кубов)
+
+            sector.myRenderSector();
         }
     }
 };

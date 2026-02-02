@@ -17,6 +17,7 @@ class MyTestFirstPerson
 private:
 
 public:
+	bool isActivate = false;
 	MyCameraFPS camFps;
 	MyPhysix::CharacterController player;
 
@@ -41,6 +42,7 @@ public:
 	{
 		glm::vec3 dir(0);
 
+		if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS) isActivate = !isActivate;
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) dir += forward;
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) dir -= forward;
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) dir += right;
@@ -83,13 +85,14 @@ public:
 			abs(posA.z - posB.z) <= (halfA.z + halfB.z);
 	}
 
-	void ResolveCharacterCollision(MyPhysix::CharacterController& c, const MyPhysix::PhysicsBody& box)
+	void ResolveCharacterCollision(MyPhysix::CharacterController& c, const InstanceData&/*MyPhysix::PhysicsBody&*/ box)
 	{
-		glm::vec3 delta = c.position - box.position;
+		//glm::vec3 delta = c.position - box.position;
+		glm::vec3 delta = c.position - glm::vec3(box.model[3]);
 
-		float px = (c.halfSize.x + box.collider.halfSize.x) - abs(delta.x);
-		float py = (c.halfSize.y + box.collider.halfSize.y) - abs(delta.y);
-		float pz = (c.halfSize.z + box.collider.halfSize.z) - abs(delta.z);
+		float px = (c.halfSize.x + 0.5f/*box.collider.halfSize.x*/) - abs(delta.x);
+		float py = (c.halfSize.y + 0.5f/*box.collider.halfSize.y*/) - abs(delta.y);
+		float pz = (c.halfSize.z + 0.5f/*box.collider.halfSize.z*/) - abs(delta.z);
 
 		if (px < py && px < pz)
 		{
@@ -141,35 +144,36 @@ public:
 
 	void MyCharacterHandle(GLFWwindow* _window)
 	{
-		player.grounded = false;
 		glm::vec3 moveDir = GetMovementInput(_window, camFps.myGetFront(), camFps.myGetRight());
-		MoveCharacter(player, moveDir, camFps.myGetDeltaTime());
-		ApplyGravity(player, camFps.myGetDeltaTime());
-		player.position += player.velocity * camFps.myGetDeltaTime();
+
+		if (isActivate)
+		{
+			player.grounded = false;
+			MoveCharacter(player, moveDir, camFps.myGetDeltaTime());
+			ApplyGravity(player, camFps.myGetDeltaTime());
+			player.position += player.velocity * camFps.myGetDeltaTime();
+		}
 	}
 
-	void UpdateCharacter(MyPhysix::MyCube* world, const GLuint _count, GLFWwindow* window,
-		std::vector<std::pair<MyPhysix::MyCube, GLuint>>& _pairCubeRay, GLuint _indexSector)
+	void UpdateCharacter(InstanceData* world, const GLuint _count, GLFWwindow* window,
+		std::vector<std::pair<InstanceData&, GLuint>>& _pairCubeRay, GLuint _indexSector)
 	{
 		for (int i = 0; i < _count; i++)
 		{
 			//raycast with world
-			if (/*world[i].isVisible && */AABBIntersect(player.position, glm::vec3(3),
-				world[i].model[3], world[i].boxPhysix.collider.halfSize))
+			if (AABBIntersect(player.position, glm::vec3(3),
+				world[i].model[3], glm::vec3(0.5f)))
 			{
-				world[i].index = i + (_count * _indexSector);
-				std::pair<MyPhysix::MyCube, GLuint> pair = { world[i], _indexSector };
+				std::pair<InstanceData&, GLuint> pair = { world[i], _indexSector };
 				_pairCubeRay.push_back(pair);
-			}
-			//player collision with world
-			if (world[i].isVisible && glm::distance(player.position, world[i].boxPhysix.position) < 2.0f)
-			{
-				if (!world[i].boxPhysix.isStatic) continue;
 
-				if (AABBIntersect(player.position, player.halfSize,
-					world[i].boxPhysix.position, world[i].boxPhysix.collider.halfSize))
+				if (world[i].isVisible)
 				{
-					ResolveCharacterCollision(player, world[i].boxPhysix);
+					if (AABBIntersect(player.position, player.halfSize,
+						world[i].model[3], glm::vec3(0.5f)))
+					{
+						ResolveCharacterCollision(player, world[i]);
+					}
 				}
 			}
 		}
