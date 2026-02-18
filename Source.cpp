@@ -116,7 +116,9 @@ void myEventKey(GLFWwindow* _window, int _key, int _scancode, int _action, int _
 		{
 			testInstance.rayCastCub->first.isVisible = false;
 
-			testInstance.myChangeCub(testInstance.rayCastCub->first,
+			/*testInstance.myChangeCub(testInstance.rayCastCub->first,
+				testInstance.rayCastCub->second);*/
+			testInstance.myDeleteCub(testInstance.rayCastCub->first,
 				testInstance.rayCastCub->second);
 		}
 	}
@@ -126,7 +128,9 @@ void myEventKey(GLFWwindow* _window, int _key, int _scancode, int _action, int _
 		{
 			testInstance.rayCastCubAdd->first.isVisible = true;
 			
-			testInstance.myChangeCub(testInstance.rayCastCubAdd->first, 
+			/*testInstance.myChangeCub(testInstance.rayCastCubAdd->first, 
+				testInstance.rayCastCubAdd->second);*/
+			testInstance.myAddCube(testInstance.rayCastCubAdd->first,
 				testInstance.rayCastCubAdd->second);
 		}
 	}
@@ -154,30 +158,14 @@ void myRender()
 {
 	//----------------test shadow
 	shadow.myUpdateMatrixLight(firstPerson.camFps);
-	testInstance.myRenderSectorCurrent();
-	/*
-	glBindVertexArray(testInstance.myGetVAO());
-	glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, testInstance.listSector.size() *
-		testInstance.listSector[0].cubLength);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glBindVertexArray(0);*/
-
-	/*glBindVertexArray(testInstance.myGetVAO());
-	glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, testInstance.INSTANCE_COUNT);*/
-
-	// Используем тот же Indirect Call
-	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, myCulling.outputSSBO); // Видимые кубы
-	//glBindBuffer(GL_DRAW_INDIRECT_BUFFER, myCulling.commandBuffer);
-	//glBindVertexArray(testInstance.myGetVAO());
-	//glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 0);
-
+	testInstance.myRenderSectorFromShadow(firstPerson.camFps.myGetPos());
+	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindVertexArray(0);
 	//----------------test shadow
 
 	glViewport(0, 0, MyScrren::WID, MyScrren::HEI);
-	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//cameraFly.myUpdateCamera();
@@ -186,7 +174,7 @@ void myRender()
 	// Create transformations
 	glm::mat4 view = firstPerson.camFps.myGetViewMatrix();//cameraFly.myGetViewMatrix();
 	glm::mat4 projection = firstPerson.camFps.myGetPerspective();//cameraFly.myGetPerspective();
-	
+
 	//---------shadow
 	shadow.myActivateShadowTexture(renderShader);
 	//---------shadow
@@ -194,28 +182,27 @@ void myRender()
 	//---------test Culling
 	//myCulling.myRenderStart(firstPerson.camFps);
 	//---------end Culling
-	
+
 	//---------Draw Instance
 
 	testInstance.myBindTexture(renderShader);
 
-	// GL_CW (Clockwise): Обход вершин по часовой стрелке = передняя грань
+	// GL_CW (Clockwise):
 	glFrontFace(GL_CCW);
 
-	// 3. Указываем, какие грани отсекать (обычно задние)
-	glCullFace(GL_BACK); // Или GL_FRONT, если задали GL_CW и хотите отсекать то, что увидите
+	// 3.
+	glCullFace(GL_BACK);
 
 	//test direct instance
 	renderShader.use();
 	renderShader.setMat4("view", view);
 	renderShader.setMat4("projection", projection);
-	renderShader.setVec3("camPos", firstPerson.camFps.myGetPos());
+	//renderShader.setVec3("camPos", firstPerson.camFps.myGetPos());
 	renderShader.setMat4("lightSpaceMatrix", shadow.myGetSpaceMatrix());
 
-	// Привязываем текстуру
-	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, testInstance.texArray);
-	renderShader.setInt("uTexArray", 1);
+	renderShader.setVec3("sunDir", shadow.lightDir); // Светит сверху вниз
+	renderShader.setVec3("sunColor", glm::vec3(1.0f, 0.98f, 0.9f));
+	renderShader.setVec3("ambient", glm::vec3(0.15f, 0.15f, 0.15f)); // Синеватый оттенок неба
 
 	testInstance.myRenderer(projection * view);
 	//---------End Draw Instance
@@ -243,8 +230,6 @@ void myRefreshViewport(GLFWwindow* _window, int _width, int _height)
 
 	MyScrren::WID = _width;
 	MyScrren::HEI = _height;
-
-	//cameraFly.myGetPerspective();
 }
 
 void myUpdate()
@@ -304,6 +289,7 @@ int main()
 	// 1. Включаем отсечение задних граней (опционально, но часто используется)
 	glEnable(GL_CULL_FACE);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glfwSwapInterval(1); // Включить вертикальную синхронизацию
 
 	while (!glfwWindowShouldClose(window))
 	{

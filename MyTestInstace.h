@@ -30,8 +30,8 @@ private:
     void myLoadTexture()
     {
         int width, height, channels;
-        unsigned char* imageData1 = stbi_load("texture/test1.png", &width, &height, &channels, 4);
-        unsigned char* imageData2 = stbi_load("texture/test2.png", &width, &height, &channels, 4);
+        unsigned char* imageData1 = stbi_load("texture/block_ground_grass1.png", &width, &height, &channels, 4);
+        unsigned char* imageData2 = stbi_load("texture/block_ground1.png", &width, &height, &channels, 4);
         unsigned char* imageData3 = stbi_load("texture/test3.png", &width, &height, &channels, 4);
         unsigned char* imageData4 = stbi_load("texture/test4.png", &width, &height, &channels, 4);
 
@@ -47,8 +47,8 @@ private:
         glBindTexture(GL_TEXTURE_2D_ARRAY, texArray);
 
         // Установите фильтрацию БЕЗ мип-мапов
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
         // Создаем хранилище: ширина, высота, количество_слоев
         glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, width, height, 4);
@@ -68,7 +68,7 @@ private:
             GL_UNSIGNED_BYTE, imageData4);
 
         // Генерация Mipmaps (рекомендуется)
-        //glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+        glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
         // Отвязка текстуры
         glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 
@@ -149,7 +149,7 @@ private:
     }
 
 public:
-
+    //depricate
     void myChangeCub(const InstanceData& _cubData, GLuint _sector)
     {
         // 1. Копируем только этот куб в GPU
@@ -161,10 +161,21 @@ public:
         );
     }
 
-    void myCreateSector(glm::vec3 _pos)
+    void myAddCube(const InstanceData& _cubData, GLuint _sector)
+    {
+        listSector[_sector].myAddCube(_cubData);
+    }
+
+    void myDeleteCub(const InstanceData& _cubData, GLuint _sector)
+    {
+        listSector[_sector].myDeleteCub(_cubData);
+    }
+
+    void myCreateSector(glm::vec3 _pos, int _index)
     {
         MySector sector;
         sector.myCreateSector(_pos * (float)sector.countCube);
+        sector.index = _index;
         listSector.push_back(sector);
     }
 
@@ -172,14 +183,27 @@ public:
 	{
         cub.myInitialize();
 
-        for (int z = -5; z < 5; z++)
+        int len = -1;
+        for (int x = -5; x < 5; x++)
         {
-            for (int x = -5; x < 5; x++)
+            for (int z = -5; z < 5; z++)
             {
-                myCreateSector(glm::vec3(x, 0, z));
+                len++;
+                myCreateSector(glm::vec3(x, 0, z), len);
             }
         }
 
+        for (auto& sec : listSector)
+        {
+            sec.myInitializeSides(listSector, 10);
+        }
+
+        for (auto& sec : listSector)
+        {
+            sec.myUptimazeSector();
+            sec.myInitializeSSBO();
+        }
+        
         myLoadTexture();
 	}
 
@@ -204,6 +228,7 @@ public:
         std::vector<std::pair<InstanceData&, GLuint>> pairCubeRay;
         float closestDistanceCast = 10.0f; // Максимальная дальность прицела
         rayCastCub = nullptr;
+        rayCastCubAdd = nullptr;
 
         for (int i = 0; i < listSector.size(); i++)
         {
@@ -232,7 +257,6 @@ public:
                 closestDistanceCast;
 
             glm::vec3 normalCub = MySimpleRayCast::getNormal(hitPoint, rayCastCub->first.model[3]);
-            rayCastCubAdd = nullptr;
             myAddCubANormal(normalCub, pairCubeRay, rayCastCubAdd);
         }
     }
@@ -241,6 +265,23 @@ public:
     {
         glBindVertexArray(myGetVAO());
         listSector[55].myRenderSector();
+    }
+
+    void myRenderSectorFromShadow(const glm::vec3& _playerPos)
+    {
+        std::vector<MySector*> data;
+
+        for (auto& sector : listSector)
+        {
+            if (MyPhysix::AABBIntersect(sector.posCollider, glm::vec3(16.f),
+                _playerPos, glm::vec3(16.f)))
+                data.push_back(&sector);
+        }
+
+        glBindVertexArray(myGetVAO());
+
+        for (auto& sector : data)
+            sector->myRenderSector();
     }
 
     void myRenderer(const glm::mat4& _frustumMatrix)

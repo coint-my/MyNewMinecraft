@@ -25,8 +25,8 @@ public:
 		_frame = 0;
 		_lastTime = glfwGetTime();
 
-		// включить или выключить синхронизацию
-		glfwSwapInterval(SYNCRONIZE_ON_60);
+		//// включить или выключить синхронизацию
+		//glfwSwapInterval(SYNCRONIZE_ON_60);
 	}
 
 	MyCameraFly(float _x, float _y, float _z)

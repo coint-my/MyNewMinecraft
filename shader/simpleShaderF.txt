@@ -11,10 +11,14 @@ flat in int vTexIndex;
 // Семплер для массива текстур
 uniform sampler2DArray uTexArray;
 
-uniform vec3 viewPos;
+//uniform vec3 viewPos;
 //тени
 uniform sampler2D shadowMap;
 in vec4 FragPosLightSpace;
+
+uniform vec3 sunDir;   // Направление солнца (например, normalize(vec3(-0.2, -1.0, -0.3)))
+uniform vec3 sunColor; // Цвет солнца (например, vec3(1.0, 0.95, 0.8))
+uniform vec3 ambient;  // Фоновое освещение (например, vec3(0.2))
 
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
@@ -42,30 +46,22 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 
 void main()
 {
-    vec3 lightColor = vec3(1, 1, 1);
-    vec3 lightPos = vec3(-1, 2, -1);
+    // 1. Текстура
+    vec4 texColor = texture(uTexArray, vec3(uv, float(vTexIndex)));
+    if(texColor.a < 0.1) discard;
 
-    // ambient
-    vec3 ambient = 0.1 * lightColor;
+    // 2. Ambient (постоянный тусклый свет везде)
+    //vec3 ambientLight = ambient * texColor.rgb;
 
-    // diffuse
+    // 3. Diffuse (прямой солнечный свет)
     vec3 normal = normalize(norm);
-    vec3 lightDir = normalize(lightPos - FragPos);
-    float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = diff * lightColor;
+    vec3 lightDir = normalize(sunDir); // Направление К источнику
+    float diff = max(dot(normal, lightDir), 0.0); // Угол падения
+    vec3 diffuseLight = diff * sunColor * texColor.rgb;
 
-    // specular (Blinn)
-    vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 halfwayDir = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
-    vec3 specular = vec3(0.1) * spec;
-
-    // ТЕНЬ
     float shadow = ShadowCalculation(FragPosLightSpace);
+    vec3 lighting = (ambient + (1.0 - shadow) * diff * sunColor) * texColor.rgb;
 
-    // если shadow = 1 → diffuse + specular не считаем
-    vec3 lighting = ambient + (1.0 - shadow) * (diffuse + specular);
-
-    vec3 color = texture(uTexArray, vec3(uv, float(vTexIndex))).rgb;
-    FragColor = vec4(color * lighting, 1.0);
+    // Финальный результат
+    FragColor = vec4(lighting , 1.0);
 }

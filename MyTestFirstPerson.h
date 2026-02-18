@@ -85,7 +85,7 @@ public:
 			abs(posA.z - posB.z) <= (halfA.z + halfB.z);
 	}
 
-	void ResolveCharacterCollision(MyPhysix::CharacterController& c, const InstanceData&/*MyPhysix::PhysicsBody&*/ box)
+	void ResolveCharacterCollision(MyPhysix::CharacterController& c, const InstanceData& box)
 	{
 		//glm::vec3 delta = c.position - box.position;
 		glm::vec3 delta = c.position - glm::vec3(box.model[3]);

@@ -34,11 +34,11 @@ void main()
     InstanceData data = allInstances[gl_InstanceID];
 
     // 1. Проверка флага активности
-    if (data.isVisible == 0) 
-    {
-        gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // Выбрасываем за экран
-        return;
-    }
+    //if (data.isVisible == 0) 
+    //{
+    //    gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // Выбрасываем за экран
+    //    return;
+    //}
 
     // 2. Проверка дистанции (Оптимизация: работаем с квадратом расстояния, так быстрее)
     //vec3 worldPosCub = vec3(data.model[3]); // Берем позицию куба из 4-го столбца матрицы

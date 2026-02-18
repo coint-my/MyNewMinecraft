@@ -17,6 +17,7 @@ private:
     //шейдер глубины
     MyShader depthShader;
 public:
+    glm::vec3 lightDir;
     // Размер карты теней (чем больше — тем чётче тени)
     const unsigned int SHADOW_WIDTH = 2048;
     const unsigned int SHADOW_HEIGHT = 2048;
@@ -25,13 +26,13 @@ public:
     {
         // Позиция directional света (как солнце)
         glm::vec3 lightPos(_camera.myGetPos());
-
+        lightDir = glm::vec3(10.f, 40.f, 10.f);
+        float size = 50.0f;
         // Ортографическая проекция (для directional light)
-        glm::mat4 lightProjection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.1f, 50.f);
+        glm::mat4 lightProjection = glm::ortho(-size, size, -size, size, 0.1f, size * 2);
 
         // Камера света
-        glm::mat4 lightView = glm::lookAt(lightPos + glm::vec3(-10, 40, -10), lightPos,
-            glm::vec3(0, 1, 0));
+        glm::mat4 lightView = glm::lookAt(lightPos + lightDir, lightPos, glm::vec3(0, 1, 0));
 
         // Итоговая матрица
         lightSpaceMatrix = lightProjection * lightView;
@@ -44,7 +45,7 @@ public:
         depthShader.use();
         depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
     }
-    void myActivateShadowTexture(MyShader &_shaderInstance)
+    void myActivateShadowTexture(MyShader& _shaderInstance)
     {
         // shadow map
         _shaderInstance.use();
@@ -78,7 +79,7 @@ public:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
         // Цвет границы = максимальная глубина
-        float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+        float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
         // Привязываем текстуру к framebuffer
