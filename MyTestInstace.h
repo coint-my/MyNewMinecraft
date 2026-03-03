@@ -20,6 +20,7 @@ private:
 
     MyPrimitiveCube cub;
     MyPhysix myPhysix;
+    MyMapHight mapH;
 public:
     GLuint texArray;
     std::unique_ptr<std::pair<InstanceData&, GLuint>> rayCastCub;
@@ -27,14 +28,24 @@ public:
     std::vector<MySector> listSector;
 private:
     
+    void myLoadMapHight()
+    {
+        int width, height, channels;
+        unsigned char* imageMapHight = stbi_load("texture/myCloudRandom_512.png", &width, &height, &channels, 4);
+        mapH = MyMapHight(width, height, imageMapHight);
+
+        stbi_image_free(imageMapHight);
+    }
+
     void myLoadTexture()
     {
         int width, height, channels;
         unsigned char* imageData1 = stbi_load("texture/block_ground_grass1.png", &width, &height, &channels, 4);
         unsigned char* imageData2 = stbi_load("texture/block_ground1.png", &width, &height, &channels, 4);
-        unsigned char* imageData3 = stbi_load("texture/test3.png", &width, &height, &channels, 4);
-        unsigned char* imageData4 = stbi_load("texture/test4.png", &width, &height, &channels, 4);
-
+        unsigned char* imageData3 = stbi_load("texture/myRockDirty_1.png", &width, &height, &channels, 4);
+        unsigned char* imageData4 = stbi_load("texture/mySad_1.png", &width, &height, &channels, 4);
+        unsigned char* imageData5 = stbi_load("texture/test4.png", &width, &height, &channels, 4);
+        
         if (imageData1) 
         {
             // Данные загружены
@@ -77,6 +88,7 @@ private:
         stbi_image_free(imageData2);
         stbi_image_free(imageData3);
         stbi_image_free(imageData4);
+        stbi_image_free(imageData5);
     }
 
 public:
@@ -179,31 +191,43 @@ public:
         listSector.push_back(sector);
     }
 
+    void myCreateSectorHight(glm::vec3 _pos, int _index, int _sectorLen)
+    {
+        MySector sector;
+        sector.index = _index;
+        sector.myInitializeHight(mapH, _pos * (float)sector.countCube, _sectorLen);
+        listSector.push_back(sector);
+    }
+
 	void myInitialize(GLFWwindow* _window, MyTestFirstPerson& _testPerson)
 	{
         cub.myInitialize();
+        myLoadMapHight();
 
+        int sectorLen = 15;
         int len = -1;
-        for (int x = -5; x < 5; x++)
+        for (int x = -sectorLen; x < sectorLen; x++)
         {
-            for (int z = -5; z < 5; z++)
+            for (int z = -sectorLen; z < sectorLen; z++)
             {
                 len++;
-                myCreateSector(glm::vec3(x, 0, z), len);
+                //myCreateSector(glm::vec3(x, 0, z), len);
+                myCreateSectorHight(glm::vec3(x, 0, z), len, sectorLen);
             }
         }
 
         for (auto& sec : listSector)
         {
-            sec.myInitializeSides(listSector, 10);
+            sec.myInitializeSides(listSector, sectorLen * 2);
         }
-
+        int countRenderCub = 0;
         for (auto& sec : listSector)
         {
             sec.myUptimazeSector();
             sec.myInitializeSSBO();
+            countRenderCub += sec.renderCubes.size();
         }
-        
+        std::cout << "render cubes = " << countRenderCub << std::endl;
         myLoadTexture();
 	}
 

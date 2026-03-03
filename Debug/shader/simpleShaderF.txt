@@ -54,14 +54,14 @@ void main()
     //vec3 ambientLight = ambient * texColor.rgb;
 
     // 3. Diffuse (прямой солнечный свет)
-    //vec3 normal = normalize(norm);
-    //vec3 lightDir = normalize(sunDir); // Направление К источнику
-    //float diff = max(dot(normal, lightDir), 0.0); // Угол падения
-    //vec3 diffuseLight = diff * sunColor * texColor.rgb;
+    vec3 normal = normalize(norm);
+    vec3 lightDir = normalize(sunDir); // Направление К источнику
+    float diff = max(dot(normal, lightDir), 0.0); // Угол падения
+    vec3 diffuseLight = diff * sunColor * texColor.rgb;
 
-    //float shadow = ShadowCalculation(FragPosLightSpace);
-    //vec3 lighting = (ambient + (1.0 - shadow) * diff * sunColor) * texColor.rgb;
+    float shadow = ShadowCalculation(FragPosLightSpace);
+    vec3 lighting = (ambient + (1.0 - shadow) * diff * sunColor) * texColor.rgb;
 
     // Финальный результат
-    FragColor = vec4(texColor.xyz , 1.0);
+    FragColor = vec4(lighting , 1.0);
 }

@@ -4,6 +4,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "MyPhysix.h"
 #include "MyTestFirstPerson.h"
+#include "MyMapHight.h"
 
 enum MyDirectionCub { LEFT, RIGHT, UP, DOWN, FRONT, BACK };
 
@@ -12,7 +13,7 @@ class MySector
 public:
 	static const int countCube = 16;
 	unsigned int cubLength;
-	unsigned int index = -1;
+	int index = -1;
 	GLuint ssbo;
 
 	std::vector<MySector*> mySides;
@@ -269,6 +270,65 @@ public:
 
 					if (y == countCube / 2 - 1)
 						cub.texIndex = 0;
+
+					cubes.push_back(cub);
+				}
+			}
+		}
+
+		cubLength = len;
+	}
+
+	void myInitializeHight(const MyMapHight& _map, const glm::vec3& _posSector, int _sectorLen)
+	{
+		cubes.reserve(countCube * countCube * countCube);
+
+		posCollider = glm::vec3(_posSector);
+		halfCollider = glm::vec3(countCube / 2) + 3.0f;
+
+		int len = -1;
+		const GLuint widT = _sectorLen * 2;
+		const GLuint heiT = _sectorLen * 2;
+		const float widHeightStep = (float)(countCube * widT) / _map.myGetWidth();
+		const float heiHeightStep = (float)(countCube * heiT) / _map.myGetHeight();
+		glm::vec3 color = _map.myGetColor(0, 0);
+
+		for (int x = 0; x < countCube; x++)
+		{
+			for (int y = 0; y < countCube; y++)
+			{
+				for (int z = 0; z < countCube; z++)
+				{
+					int heiCurrent = ((index / heiT) * countCube + x);
+					int widCurrent = ((index % widT) * countCube + z);
+					int xResult = (int)(widCurrent / widHeightStep);
+					int zResult = (int)(heiCurrent / heiHeightStep);
+					color = _map.myGetColor(xResult, zResult);//to do this
+					len++;
+
+					glm::vec3 pos = glm::vec3((float)x, (float)y, (float)z);
+					pos = pos + posCollider - glm::vec3(countCube / 2);
+
+					InstanceData cub;
+					cub.isVisible = false;
+					cub.model = glm::translate(glm::mat4(1.0f), pos);
+					cub.texIndex = 0;
+					cub.index = len;
+
+					int yy = (color.r + 1) / (countCube - 2);
+
+					if (y < yy + 1)
+					{
+						cub.isVisible = true;
+						//cub.texIndex = 1;
+					}
+
+					if (y < countCube / 2 - 1)//this is grass and ground
+						cub.texIndex = 1;
+					if (y < 4)//this is rock
+						cub.texIndex = 3;
+					if (y < 2)//this is sad
+						cub.texIndex = 2;
 
 					cubes.push_back(cub);
 				}

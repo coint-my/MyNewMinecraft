@@ -140,6 +140,7 @@
     <ClInclude Include="MyCameraFly.h" />
     <ClInclude Include="MyGPUCulling.h" />
     <ClInclude Include="MyInstanceData.h" />
+    <ClInclude Include="MyMapHight.h" />
     <ClInclude Include="MyOutlineShader.h" />
     <ClInclude Include="MyPhysix.h" />
     <ClInclude Include="MyPrimitiveCube.h" />

@@ -25,7 +25,7 @@ GLFWwindow* window;
 //камера полета
 //MyCameraFly cameraFly(0.0f, 0.0f, -1.0f);
 //fps
-MyTestFirstPerson firstPerson(glm::vec3(0, 8, 0));
+MyTestFirstPerson firstPerson(glm::vec3(0, 18, 0));
 //шейдер
 MyShader shaderSimple;
 MyShader shaderInstance;

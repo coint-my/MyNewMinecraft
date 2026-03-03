@@ -62,5 +62,8 @@
     <ClInclude Include="MyInstanceData.h">
       <Filter>Исходные файлы</Filter>
     </ClInclude>
+    <ClInclude Include="MyMapHight.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
