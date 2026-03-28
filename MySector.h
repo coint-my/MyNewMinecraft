@@ -6,7 +6,7 @@
 #include "MyTestFirstPerson.h"
 #include "MyMapHight.h"
 
-enum MyDirectionCub { LEFT, RIGHT, UP, DOWN, FRONT, BACK };
+enum MyDirectionCub { NONE = -1, LEFT, RIGHT, UP, DOWN, FRONT, BACK };
 
 class MySector
 {
@@ -19,7 +19,8 @@ public:
 	std::vector<MySector*> mySides;
 
 	std::vector<InstanceData> cubes;
-	std::vector<InstanceData> renderCubes;
+	//std::vector<InstanceData> renderCubes;
+	std::vector<MyInstanceDataRender> renderCubes;
 
 	glm::vec3 posCollider;
 	glm::vec3 halfCollider;
@@ -31,13 +32,19 @@ public:
 	}
 
 private:
+
+	struct MyHelperSectorSide
+	{
+		MyDirectionCub dir;
+		glm::i16vec3 posCub;
+	};
 	
 	inline glm::vec3 myGet3DIndex(const GLuint _1Dindex) const
 	{
 		return glm::vec3(_1Dindex % countCube, (_1Dindex / countCube) % countCube,
 			_1Dindex / (countCube * countCube));
 	}
-
+	
 	inline GLuint myGet1DIndex(int _x, int _y, int _z) const
 	{
 		return _x * (countCube * countCube) + _y * countCube + _z;
@@ -46,12 +53,14 @@ private:
 	void myAddRenderer(const InstanceData& _data)
 	{
 		// Добавляем только этот куб в список для GPU
-		renderCubes.push_back(_data);
+		//renderCubes.push_back(_data);
+
+		renderCubes.push_back(MyPakedInstanceData(_data));
 	}
 
-	int myCheckSides(const MyDirectionCub& _side, int _indexSide, int _qube)
+	/*int myCheckSides(const MyDirectionCub& _side, int _indexSide, int _qube, int _hight)
 	{
-		if (_indexSide >= 0 && _indexSide <= _qube * _qube)
+		if (_indexSide >= 0 && _indexSide <= (_qube * _qube) * _hight - 1)
 		{
 			if (_side == LEFT)
 				return _indexSide;
@@ -61,9 +70,13 @@ private:
 				return _indexSide;
 			else if (_side == BACK && _qube - 1 != _indexSide % _qube)
 				return _indexSide;
+			else if (_side == UP)
+				return _indexSide;
+			else if (_side == DOWN)
+				return _indexSide;
 		}
 		return -1;
-	}
+	}*/
 
 public:
 
@@ -71,13 +84,207 @@ public:
 	{
 		glGenBuffers(1, &ssbo);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, renderCubes.size() * sizeof(InstanceData),
+		/*glBufferData(GL_SHADER_STORAGE_BUFFER, renderCubes.size() * sizeof(InstanceData),
+			renderCubes.data(), GL_STATIC_DRAW);*/
+		glBufferData(GL_SHADER_STORAGE_BUFFER, renderCubes.size() * sizeof(MyInstanceDataRender),
 			renderCubes.data(), GL_STATIC_DRAW);
 	}
 
-	bool myCheckNeighborgCub(int _x, int _y, int _z, int _index)
+	std::pair<MyHelperSectorSide, InstanceData*> myCheckSideSectorDirection(glm::vec3 _posCub,
+		MyDirectionCub _dir)
 	{
-		if (_x == 0 && _z == countCube - 1 && mySides[LEFT] != nullptr && mySides[FRONT] != nullptr)
+		std::pair<MyHelperSectorSide, InstanceData*> myPairSide;
+
+		if (_dir == LEFT && _posCub.x == 0 && mySides[LEFT])
+		{
+			glm::i16vec3 pos = glm::i16vec3(countCube - 1, _posCub.y, _posCub.z);
+			myPairSide.first = MyHelperSectorSide{ LEFT, pos };
+			myPairSide.second = &mySides[LEFT]->cubes[myGet1DIndex(pos.x, pos.y, pos.z)];
+			return myPairSide;
+		}
+		else if (_dir == RIGHT && _posCub.x == countCube - 1 && mySides[RIGHT])
+		{
+			glm::i16vec3 pos = glm::i16vec3(0, _posCub.y, _posCub.z);
+			myPairSide.first = MyHelperSectorSide{ RIGHT, pos };
+			myPairSide.second = &mySides[RIGHT]->cubes[myGet1DIndex(pos.x, pos.y, pos.z)];
+			return myPairSide;
+		}
+		else if (_dir == FRONT && _posCub.z == countCube - 1 && mySides[FRONT])
+		{
+			glm::i16vec3 pos = glm::i16vec3(_posCub.x, _posCub.y, 0);
+			myPairSide.first = MyHelperSectorSide{ FRONT, pos };
+			myPairSide.second = &mySides[FRONT]->cubes[myGet1DIndex(pos.x, pos.y, pos.z)];
+			return myPairSide;
+		}
+		else if (_dir == BACK && _posCub.z == 0 && mySides[BACK])
+		{
+			glm::i16vec3 pos = glm::i16vec3(_posCub.x, _posCub.y, countCube - 1);
+			myPairSide.first = MyHelperSectorSide{ BACK, pos };
+			myPairSide.second = &mySides[BACK]->cubes[myGet1DIndex(pos.x, pos.y, pos.z)];
+			return myPairSide;
+		}
+		else if (_dir == UP && _posCub.y == countCube - 1 && mySides[UP])
+		{
+			glm::i16vec3 pos = glm::i16vec3(_posCub.x, 0, _posCub.z);
+			myPairSide.first = MyHelperSectorSide{ UP, pos };
+			myPairSide.second = &mySides[UP]->cubes[myGet1DIndex(pos.x, pos.y, pos.z)];
+			return myPairSide;
+		}
+		else if (_dir == DOWN && _posCub.y == 0 && mySides[DOWN])
+		{
+			glm::i16vec3 pos = glm::i16vec3(_posCub.x, countCube - 1, _posCub.z);
+			myPairSide.first = MyHelperSectorSide{ DOWN, pos };
+			myPairSide.second = &mySides[DOWN]->cubes[myGet1DIndex(pos.x, pos.y, pos.z)];
+			return myPairSide;
+		}
+
+		myPairSide.first = MyHelperSectorSide{ NONE, glm::i16vec3() };
+		return myPairSide;
+	}
+
+	std::vector<std::pair<MyHelperSectorSide, InstanceData*>> MyCheckSedesSector(glm::vec3 _pos)
+	{
+		std::vector<std::pair<MyHelperSectorSide, InstanceData*>> sides;
+		std::pair<MyHelperSectorSide, InstanceData*> tempPair;
+
+		for (size_t i = 0; i < 6; i++)
+		{
+			tempPair = myCheckSideSectorDirection(_pos, (MyDirectionCub)i);
+			if (tempPair.first.dir > -1)
+				sides.push_back(tempPair);
+		}
+
+		return sides;
+	}
+
+	bool myIsCheckBoundingSector(int _x, int _y, int _z, 
+		std::vector<std::pair<MyHelperSectorSide, InstanceData*>>& _list)
+	{
+		InstanceData* left = nullptr;
+		InstanceData* right = nullptr;
+		InstanceData* front = nullptr;
+		InstanceData* back = nullptr;
+		InstanceData* up = nullptr;
+		InstanceData* down = nullptr;
+
+		if (_x - 1 < 0)
+		{
+			bool isFlag = false;
+			for (auto& item : _list)
+				if (item.first.dir == LEFT)
+				{
+					left = item.second;
+					isFlag = true;
+					break;
+				}
+			if (!isFlag)
+				return true;
+		}
+		else
+		{
+			left = &cubes[myGet1DIndex(_x - 1, _y, _z)];
+		}
+		if (_x + 1 == countCube)
+		{
+			bool isFlag = false;
+			for (auto& item : _list)
+				if (item.first.dir == RIGHT)
+				{
+					right = item.second;
+					isFlag = true;
+					break;
+				}
+			if (!isFlag)
+				return true;
+		}
+		else
+		{
+			right = &cubes[myGet1DIndex(_x + 1, _y, _z)];
+		}
+		if (_z - 1 < 0)
+		{
+			bool isFlag = false;
+			for (auto& item : _list)
+				if (item.first.dir == BACK)
+				{
+					back = item.second;
+					isFlag = true;
+					break;
+				}
+			if (!isFlag)
+				return true;
+		}
+		else
+		{
+			back = &cubes[myGet1DIndex(_x, _y, _z - 1)];
+		}
+		if (_z + 1 == countCube)
+		{
+			bool isFlag = false;
+			for (auto& item : _list)
+				if (item.first.dir == FRONT)
+				{
+					front = item.second;
+					isFlag = true;
+					break;
+				}
+			if (!isFlag)
+				return true;
+		}
+		else
+		{
+			front = &cubes[myGet1DIndex(_x, _y, _z + 1)];
+		}
+		if (_y - 1 < 0)
+		{
+			bool isFlag = false;
+			for (auto& item : _list)
+				if (item.first.dir == DOWN)
+				{
+					down = item.second;
+					isFlag = true;
+					break;
+				}
+			if (!isFlag)
+				return true;
+		}
+		else
+		{
+			down = &cubes[myGet1DIndex(_x, _y - 1, _z)];
+		}
+		if (_y + 1 == countCube)
+		{
+			bool isFlag = false;
+			for (auto& item : _list)
+				if (item.first.dir == UP)
+				{
+					up = item.second;
+					isFlag = true;
+					break;
+				}
+			if (!isFlag)
+				return true;
+		}
+		else
+		{
+			up = &cubes[myGet1DIndex(_x, _y + 1, _z)];
+		}
+
+		if (left->isVisible && right->isVisible && back->isVisible && front->isVisible &&
+			down->isVisible && up->isVisible)
+			return false;
+		return true;
+	}
+
+	bool myCheckNeighborgCub(int _x, int _y, int _z)
+	{
+		std::vector<std::pair<MyHelperSectorSide, InstanceData*>> listSides =
+			MyCheckSedesSector(glm::vec3(_x, _y, _z));
+
+		if (listSides.size() > 0)
+			return myIsCheckBoundingSector(_x, _y, _z, listSides);
+
+		/*if (_x == 0 && _z == countCube - 1 && mySides[LEFT] != nullptr && mySides[FRONT] != nullptr)
 		{
 			int indLeft = myGet1DIndex(countCube - 1, _y, _z);
 			int indFront = myGet1DIndex(_x, _y, 0);
@@ -178,6 +385,30 @@ public:
 				cubes[myGet1DIndex(_x + 1, _y, _z)].isVisible == true)
 				return false;
 		}
+		if (_y == 0 && mySides[UP] != nullptr)
+		{
+			int ind = myGet1DIndex(_x, countCube - 1, _z);
+
+			if(mySides[UP]->cubes[ind].isVisible == true && 
+				cubes[myGet1DIndex(_x, _y + 1, _z)].isVisible == true && _z > 0 && _z < countCube - 1 &&
+				cubes[myGet1DIndex(_x, _y, _z + 1)].isVisible == true &&
+				cubes[myGet1DIndex(_x, _y, _z - 1)].isVisible == true && _x > 0 && _x < countCube - 1 &&
+				cubes[myGet1DIndex(_x - 1, _y, _z)].isVisible == true &&
+				cubes[myGet1DIndex(_x + 1, _y, _z)].isVisible == true)
+				return false;
+		}
+		if (_y == countCube - 1 && mySides[DOWN] != nullptr)
+		{
+			int ind = myGet1DIndex(_x, 0, _z);
+
+			if (mySides[DOWN]->cubes[ind].isVisible == true &&
+				cubes[myGet1DIndex(_x, _y - 1, _z)].isVisible == true && _z > 0 && _z < countCube - 1 &&
+				cubes[myGet1DIndex(_x, _y, _z + 1)].isVisible == true &&
+				cubes[myGet1DIndex(_x, _y, _z - 1)].isVisible == true && _x > 0 && _x < countCube - 1 &&
+				cubes[myGet1DIndex(_x - 1, _y, _z)].isVisible == true &&
+				cubes[myGet1DIndex(_x + 1, _y, _z)].isVisible == true)
+				return false;
+		}*/
 
 		return true;
 	}
@@ -206,8 +437,7 @@ public:
 					if (x == 0 || x == countCube - 1 || y == 0 || y == countCube - 1 ||
 						z == 0 || z == countCube - 1)
 					{
-						hasEmptyNeighbor = myCheckNeighborgCub(x, y, z, len);
-						//hasEmptyNeighbor = true;
+						hasEmptyNeighbor = myCheckNeighborgCub(x, y, z);
 					}
 					else if (cubes[myGet1DIndex(x + 1, y, z)].isVisible == 1 &&
 						cubes[myGet1DIndex(x - 1, y, z)].isVisible == 1 &&
@@ -230,9 +460,32 @@ public:
 				}
 			}
 		}
+
+		cubes[0].isVisible = true;
 	}
 
-	void myInitialize(const glm::vec3& _posSector = glm::vec3())
+	void myAllCubesRender()
+	{
+		renderCubes.clear();
+		int len = -1;
+
+		for (int x = 0; x < countCube; x++)
+		{
+			for (int y = 0; y < countCube; y++)
+			{
+				for (int z = 0; z < countCube; z++)
+				{
+					len++;
+					// Если в этой ячейке пусто — пропускаем
+					if (cubes[len].isVisible == false) continue;
+
+					myAddRenderer(cubes[len]);
+				}
+			}
+		}
+	}
+
+	void myInitializeRandomHeight(const glm::vec3& _posSector = glm::vec3())
 	{
 		cubes.reserve(countCube * countCube * countCube);
 
@@ -258,7 +511,7 @@ public:
 
 					InstanceData cub;
 					cub.isVisible = false;
-					cub.model = glm::translate(glm::mat4(1.0f), pos);
+					cub.pos = pos;
 					cub.texIndex = 0;
 					cub.index = len;
 
@@ -279,7 +532,8 @@ public:
 		cubLength = len;
 	}
 
-	void myInitializeHight(const MyMapHight& _map, const glm::vec3& _posSector, int _sectorLen)
+	void myInitializeSectorParameters(const glm::vec3& _posSector, int _textureIndex,
+		bool _isVisible)
 	{
 		cubes.reserve(countCube * countCube * countCube);
 
@@ -287,11 +541,6 @@ public:
 		halfCollider = glm::vec3(countCube / 2) + 3.0f;
 
 		int len = -1;
-		const GLuint widT = _sectorLen * 2;
-		const GLuint heiT = _sectorLen * 2;
-		const float widHeightStep = (float)(countCube * widT) / _map.myGetWidth();
-		const float heiHeightStep = (float)(countCube * heiT) / _map.myGetHeight();
-		glm::vec3 color = _map.myGetColor(0, 0);
 
 		for (int x = 0; x < countCube; x++)
 		{
@@ -299,36 +548,16 @@ public:
 			{
 				for (int z = 0; z < countCube; z++)
 				{
-					int heiCurrent = ((index / heiT) * countCube + x);
-					int widCurrent = ((index % widT) * countCube + z);
-					int xResult = (int)(widCurrent / widHeightStep);
-					int zResult = (int)(heiCurrent / heiHeightStep);
-					color = _map.myGetColor(xResult, zResult);//to do this
 					len++;
 
 					glm::vec3 pos = glm::vec3((float)x, (float)y, (float)z);
 					pos = pos + posCollider - glm::vec3(countCube / 2);
 
 					InstanceData cub;
-					cub.isVisible = false;
-					cub.model = glm::translate(glm::mat4(1.0f), pos);
-					cub.texIndex = 0;
+					cub.isVisible = _isVisible;
+					cub.pos = pos;
+					cub.texIndex = _textureIndex;
 					cub.index = len;
-
-					int yy = (color.r + 1) / (countCube - 2);
-
-					if (y < yy + 1)
-					{
-						cub.isVisible = true;
-						//cub.texIndex = 1;
-					}
-
-					if (y < countCube / 2 - 1)//this is grass and ground
-						cub.texIndex = 1;
-					if (y < 4)//this is rock
-						cub.texIndex = 3;
-					if (y < 2)//this is sad
-						cub.texIndex = 2;
 
 					cubes.push_back(cub);
 				}
@@ -338,28 +567,146 @@ public:
 		cubLength = len;
 	}
 
-	void myInitializeSides(std::vector<MySector>& _sectors, int _size)
+	void myInitializeHight(const MyMapHight& _map, const glm::vec3& _posSector, int _sectorLen,
+		int _landscapeY, int _sectorHight)
+	{
+		if (_landscapeY == _sectorHight)
+		{
+			cubes.reserve(countCube * countCube * countCube);
+
+			posCollider = glm::vec3(_posSector);
+			halfCollider = glm::vec3(countCube / 2) + 3.0f;
+
+			int len = -1;
+			const GLuint widT = _sectorLen * 2;
+			const GLuint heiT = _sectorLen * 2;
+			const float widHeightStep = (float)(countCube * widT) / _map.myGetWidth();
+			const float heiHeightStep = (float)(countCube * heiT) / _map.myGetHeight();
+			glm::vec3 color = _map.myGetColor(0, 0);
+
+			for (int x = 0; x < countCube; x++)
+			{
+				for (int y = 0; y < countCube; y++)
+				{
+					for (int z = 0; z < countCube; z++)
+					{
+						int heiCurrent = (((index % (int)pow(_sectorLen * 2, 2)) / heiT) * countCube + x);
+						int widCurrent = ((index % widT) * countCube + z);
+						int xResult = (int)(widCurrent / widHeightStep);
+						int zResult = (int)(heiCurrent / heiHeightStep);
+						color = _map.myGetColor(xResult, zResult);
+						len++;
+
+						glm::vec3 pos = glm::vec3((float)x, (float)y, (float)z);
+						pos = pos + posCollider - glm::vec3(countCube / 2);
+
+						InstanceData cub;
+						cub.isVisible = false;
+						cub.pos = pos;
+						cub.texIndex = 0;
+						cub.index = len;
+
+						int yy = (color.r + 1) / (countCube - 2);
+
+						if (y < yy + 1)
+							cub.isVisible = true;
+
+						if (y < countCube / 2 - 1)//this is grass and ground
+							cub.texIndex = 1;
+						if (y < 4)//this is rock
+							cub.texIndex = 3;
+						if (y < 2)//this is sad
+							cub.texIndex = 2;
+
+						cubes.push_back(cub);
+					}
+				}
+			}
+
+			cubLength = len;
+		}
+		else if (_landscapeY < _sectorHight)
+		{
+			myInitializeSectorParameters(_posSector, 0, false);
+		}
+		else if (_landscapeY > _sectorHight)
+		{
+			myInitializeSectorParameters(_posSector, 1, true);
+		}
+	}
+
+	void myInitializeSides(std::vector<MySector>& _sectors, int _size, int _hight)
 	{
 		mySides.clear();
 		mySides.reserve(6);
 		mySides = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 
-		int left = myCheckSides(LEFT, index - _size, _size);
-		int right = myCheckSides(RIGHT, index + _size, _size);
-		int forward = myCheckSides(FRONT, index + 1, _size);
-		int back = myCheckSides(BACK, index - 1, _size);
-		//-------left
-		if (left >= 0)
-			mySides[LEFT] = &_sectors[left];
-		//-------right
-		if (right >= 0)
-			mySides[RIGHT] = &_sectors[right];
-		//-------front
-		if (forward >= 0)
-			mySides[FRONT] = &_sectors[forward];
-		//-------back
-		if (back >= 0)
-			mySides[BACK] = &_sectors[back];
+		std::vector<MySector*> tempSector;
+		for (auto& item : _sectors)
+			if (MyPhysix::AABBIntersect(posCollider, glm::vec3(countCube), item.posCollider, glm::vec3(2)))
+				tempSector.push_back(&item);
+
+		glm::vec3 testRectIntersectLeft = glm::vec3(posCollider) + glm::vec3(-countCube, 0, 0);
+		glm::vec3 testRectIntersectRight = glm::vec3(posCollider) + glm::vec3(countCube, 0, 0);
+		glm::vec3 testRectIntersectBack = glm::vec3(posCollider) + glm::vec3(0, 0, -countCube);
+		glm::vec3 testRectIntersectFront = glm::vec3(posCollider) + glm::vec3(0, 0, countCube);
+		glm::vec3 testRectIntersectUp = glm::vec3(posCollider) + glm::vec3(0, countCube, 0);
+		glm::vec3 testRectIntersectDown = glm::vec3(posCollider) + glm::vec3(0, -countCube, 0);
+
+		for (auto& item : tempSector)
+			if (MyPhysix::AABBIntersect(testRectIntersectLeft, glm::vec3(1), item->posCollider,
+				item->halfCollider))
+				mySides[LEFT] = item;
+
+		for (auto& item : tempSector)
+			if (MyPhysix::AABBIntersect(testRectIntersectRight, glm::vec3(1), item->posCollider,
+				item->halfCollider))
+				mySides[RIGHT] = item;
+
+		for (auto& item : tempSector)
+			if (MyPhysix::AABBIntersect(testRectIntersectBack, glm::vec3(1), item->posCollider,
+				item->halfCollider))
+				mySides[BACK] = item;
+
+		for (auto& item : tempSector)
+			if (MyPhysix::AABBIntersect(testRectIntersectFront, glm::vec3(1), item->posCollider,
+				item->halfCollider))
+				mySides[FRONT] = item;
+
+		for (auto& item : tempSector)
+			if (MyPhysix::AABBIntersect(testRectIntersectUp, glm::vec3(1), item->posCollider,
+				item->halfCollider))
+				mySides[UP] = item;
+
+		for (auto& item : tempSector)
+			if (MyPhysix::AABBIntersect(testRectIntersectDown, glm::vec3(1), item->posCollider,
+				item->halfCollider))
+				mySides[DOWN] = item;
+
+		//int left = myCheckSides(LEFT, index - _size, _size, _hight);
+		//int right = myCheckSides(RIGHT, index + _size, _size, _hight);
+		//int forward = myCheckSides(FRONT, index + 1, _size, _hight);
+		//int back = myCheckSides(BACK, index - 1, _size, _hight);
+		//int up = myCheckSides(DOWN, index - (_size * _size), _size, _hight);
+		//int down = myCheckSides(UP, index + (_size * _size), _size, _hight);
+		////-------left
+		//if (left >= 0)
+		//	mySides[LEFT] = &_sectors[left];
+		////-------right
+		//if (right >= 0)
+		//	mySides[RIGHT] = &_sectors[right];
+		////-------front
+		//if (forward >= 0)
+		//	mySides[FRONT] = &_sectors[forward];
+		////-------back
+		//if (back >= 0)
+		//	mySides[BACK] = &_sectors[back];
+		////-------up
+		//if (up >= 0)
+		//	mySides[DOWN] = &_sectors[up];
+		////-------down
+		//if (down >= 0)
+		//	mySides[UP] = &_sectors[down];
 	}
 
 	void myAddCube(const InstanceData& _cubData)
@@ -368,30 +715,28 @@ public:
 
 		myUptimazeSector();
 
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, renderCubes.size() * sizeof(InstanceData),
-			renderCubes.data(), GL_STATIC_DRAW);
+		myInitializeSSBO();
 	}
 
 	void myDeleteCub(const InstanceData& _cubData)
 	{
-		//auto it = std::find(renderCubes.begin(), renderCubes.end(), _cubData);
 		cubes[_cubData.index].isVisible = false;
 
-		renderCubes.erase(std::remove(renderCubes.begin(), renderCubes.end(), _cubData), 
+		MyInstanceDataRender render = MyPakedInstanceData(_cubData);
+		renderCubes.erase(std::remove(renderCubes.begin(), renderCubes.end(), render),
 			renderCubes.end());
 
-		myUptimazeSector();
+		/*renderCubes.erase(std::remove(renderCubes.begin(), renderCubes.end(), _cubData), 
+			renderCubes.end());*/
 
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, renderCubes.size() * sizeof(InstanceData),
-			renderCubes.data(), GL_STATIC_DRAW);
+		//myUptimazeSector();
+
+		myInitializeSSBO();
 	}
 
 	void myCreateSector(const glm::vec3& _pos = glm::vec3(0))
 	{
-		myInitialize(_pos);
-		//myInitializeSSBO();
+		myInitializeRandomHeight(_pos);
 	}
 
 	void myUpdateSector(MyTestFirstPerson& _player, GLFWwindow* _window, 

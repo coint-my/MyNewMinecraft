@@ -1,0 +1,106 @@
+#version 430 core
+
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aNorm;
+layout (location = 2) in vec2 aTexCoords;
+
+struct MyInstanceDataRender 
+{
+    int x_y;
+    int z_texIndex;
+    int visible_index;
+    int index;
+};
+
+struct InstanceData 
+{
+    vec3 pos;
+    int texIndex;
+    int isVisible;
+    int index;
+};
+
+InstanceData unpaked(MyInstanceDataRender _instance)
+{
+    InstanceData myData;
+    vec3 pos = vec3(float((_instance.x_y << 16) >> 16), float(_instance.x_y >> 16), float((_instance.z_texIndex << 16) >> 16));
+    myData.pos = pos;
+    myData.texIndex = _instance.z_texIndex >> 16;
+    myData.isVisible = (_instance.visible_index << 16) >> 16;
+    myData.index = _instance.index;
+}
+
+// Привязываем наш статический буфер к binding 0
+layout (std430, binding = 0) buffer InBuf 
+{
+    MyInstanceDataRender allInstances[];
+};
+
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat4 lightSpaceMatrix;
+
+out vec3 FragPos;
+out vec2 uv;
+out vec3 norm;
+out vec4 FragPosLightSpace;
+flat out int vTexIndex;
+
+void main() 
+{
+    // Рисуем кубы строго в том порядке, в котором они лежат в памяти
+    MyInstanceDataRender data2 = allInstances[gl_InstanceID];
+    InstanceData data = unpaked(data2);
+
+    // 1. Проверка флага активности
+    if (data.isVisible == 0) 
+    {
+        gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // Выбрасываем за экран
+        return;
+    }
+
+    // 2. Проверка дистанции (Оптимизация: работаем с квадратом расстояния, так быстрее)
+    //vec3 worldPosCub = vec3(data.model[3]); // Берем позицию куба из 4-го столбца матрицы
+    //float distSq = dot(worldPosCub - camPos, worldPosCub - camPos);
+    //if (distSq > maxDist * maxDist) 
+    //{
+    //    gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // Выбрасываем за экран
+    //    return;
+    //}
+
+    //mat4 mvp = projection * view * data.model;
+    
+    // 2. Получаем позицию центра куба в Clip Space
+    // (Используем vec4(0,0,0,1), так как это локальный центр куба)
+    //vec4 clipPos = mvp * vec4(0.0, 0.0, 0.0, 1.0);
+
+    // 3. Проверка на вхождение в пирамиду видимости (Frustum)
+    // Добавляем небольшой запас (например, 1.5), чтобы куб не исчезал, 
+    // когда его центр уже за экраном, но края еще видны.
+    //float margin = 2.8 * clipPos.w; 
+    //if (clipPos.z < -margin || clipPos.z > margin || 
+    //    abs(clipPos.x) > margin || abs(clipPos.y) > margin) 
+    //{
+    //    gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // Выкидываем за пределы NDC
+    //    return;
+    //}
+
+    mat4 model = mat4(1.0); // Создает единичную матрицу
+    model[3].xyz = data.pos;     // Записывает vec3 в 4-й столбец
+
+    // 1 ЕДИНСТВЕННЫЙ worldPos
+    vec4 worldPos = model * vec4(aPos, 1.0);
+
+    // 2 данные для fragment shader
+    FragPos = worldPos.xyz;
+
+    norm = mat3(transpose(inverse(model))) * aNorm;
+
+    // 3 координаты в пространстве света
+    FragPosLightSpace = lightSpaceMatrix * worldPos;
+    
+    uv = aTexCoords;
+    vTexIndex = data.texIndex;
+    
+    gl_Position = projection * view * worldPos;
+}

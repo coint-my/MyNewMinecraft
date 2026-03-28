@@ -87,8 +87,7 @@ public:
 
 	void ResolveCharacterCollision(MyPhysix::CharacterController& c, const InstanceData& box)
 	{
-		//glm::vec3 delta = c.position - box.position;
-		glm::vec3 delta = c.position - glm::vec3(box.model[3]);
+		glm::vec3 delta = c.position - glm::vec3(box.pos);
 
 		float px = (c.halfSize.x + 0.5f/*box.collider.halfSize.x*/) - abs(delta.x);
 		float py = (c.halfSize.y + 0.5f/*box.collider.halfSize.y*/) - abs(delta.y);
@@ -114,34 +113,6 @@ public:
 		}
 	}
 
-	/*void UpdateCharacter(MyPhysix::CharacterController& c, 
-		const std::vector<MyPhysix::PhysicsBody*>& world,
-		GLFWwindow* window, glm::vec3 forward, glm::vec3 right, float dt)
-	{
-		c.grounded = false;
-
-		glm::vec3 moveDir = GetMovementInput(window, forward, right);
-		MoveCharacter(c, moveDir, dt);
-
-		ApplyGravity(c, dt);
-
-		c.position += c.velocity * dt;
-
-		for (const MyPhysix::PhysicsBody* box : world)
-		{
-			if (glm::distance(c.position, box->position) < 3.0f)
-			{
-				if (!box->isStatic) continue;
-
-				if (AABBIntersect(c.position, c.halfSize,
-					box->position, box->collider.halfSize))
-				{
-					ResolveCharacterCollision(c, *box);
-				}
-			}
-		}
-	}*/
-
 	void MyCharacterHandle(GLFWwindow* _window)
 	{
 		glm::vec3 moveDir = GetMovementInput(_window, camFps.myGetFront(), camFps.myGetRight());
@@ -162,7 +133,7 @@ public:
 		{
 			//raycast with world
 			if (AABBIntersect(player.position, glm::vec3(3),
-				world[i].model[3], glm::vec3(0.5f)))
+				world[i].pos, glm::vec3(0.5f)))
 			{
 				std::pair<InstanceData&, GLuint> pair = { world[i], _indexSector };
 				_pairCubeRay.push_back(pair);
@@ -170,7 +141,7 @@ public:
 				if (world[i].isVisible)
 				{
 					if (AABBIntersect(player.position, player.halfSize,
-						world[i].model[3], glm::vec3(0.5f)))
+						world[i].pos, glm::vec3(0.5f)))
 					{
 						ResolveCharacterCollision(player, world[i]);
 					}

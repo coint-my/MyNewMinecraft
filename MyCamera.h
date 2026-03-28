@@ -57,7 +57,7 @@ public:
 	}
 	inline glm::mat4 myGetPerspective() const
 	{
-		return glm::perspective(Zoom, (float)MyScrren::WID / (float)MyScrren::HEI, 0.1f, 250.0f);
+		return glm::perspective(Zoom, (float)MyScrren::WID / (float)MyScrren::HEI, 0.1f, 300.0f);
 	}
 
 	virtual void myUpdateCameraVectors() = 0;

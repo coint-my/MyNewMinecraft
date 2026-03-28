@@ -1,15 +1,17 @@
 #version 430 core
+
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNorm;
 layout (location = 2) in vec2 aTexCoords;
 
 struct InstanceData 
 {
-    mat4 model;
+    //mat4 model;
+    vec3 pos;
     int texIndex;
     int isVisible;
     int index;
-    float p1;
+    float p1, p2;
 };
 
 // Привязываем наш статический буфер к binding 0
@@ -66,13 +68,16 @@ void main()
     //    return;
     //}
 
+    mat4 model = mat4(1.0); // Создает единичную матрицу
+    model[3].xyz = data.pos;     // Записывает vec3 в 4-й столбец
+
     // 1 ЕДИНСТВЕННЫЙ worldPos
-    vec4 worldPos = data.model * vec4(aPos, 1.0);
+    vec4 worldPos = model * vec4(aPos, 1.0);
 
     // 2 данные для fragment shader
     FragPos = worldPos.xyz;
 
-    norm = mat3(transpose(inverse(data.model))) * aNorm;
+    norm = mat3(transpose(inverse(model))) * aNorm;
 
     // 3 координаты в пространстве света
     FragPosLightSpace = lightSpaceMatrix * worldPos;

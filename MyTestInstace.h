@@ -162,16 +162,16 @@ private:
 
 public:
     //depricate
-    void myChangeCub(const InstanceData& _cubData, GLuint _sector)
-    {
-        // 1. Копируем только этот куб в GPU
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, listSector[_sector].ssbo);
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER,
-            _cubData.index * sizeof(InstanceData),      // Смещение до нужного куба
-            sizeof(InstanceData),                       // Размер одного куба
-            &_cubData                                   // Откуда берем данные
-        );
-    }
+    //void myChangeCub(const InstanceData& _cubData, GLuint _sector)
+    //{
+    //    // 1. Копируем только этот куб в GPU
+    //    glBindBuffer(GL_SHADER_STORAGE_BUFFER, listSector[_sector].ssbo);
+    //    glBufferSubData(GL_SHADER_STORAGE_BUFFER,
+    //        _cubData.index * sizeof(InstanceData),      // Смещение до нужного куба
+    //        sizeof(InstanceData),                       // Размер одного куба
+    //        &_cubData                                   // Откуда берем данные
+    //    );
+    //}
 
     void myAddCube(const InstanceData& _cubData, GLuint _sector)
     {
@@ -183,19 +183,21 @@ public:
         listSector[_sector].myDeleteCub(_cubData);
     }
 
-    void myCreateSector(glm::vec3 _pos, int _index)
+    /*void myCreateSector(glm::vec3 _pos, int _index)
     {
         MySector sector;
         sector.myCreateSector(_pos * (float)sector.countCube);
         sector.index = _index;
         listSector.push_back(sector);
-    }
+    }*/
 
-    void myCreateSectorHight(glm::vec3 _pos, int _index, int _sectorLen)
+    void myCreateSectorHight(glm::vec3 _pos, int _index, int _sectorLen, int _landscape,
+        int _sectorHight)
     {
         MySector sector;
         sector.index = _index;
-        sector.myInitializeHight(mapH, _pos * (float)sector.countCube, _sectorLen);
+        sector.myInitializeHight(mapH, _pos * (float)sector.countCube, _sectorLen, _landscape,
+            _sectorHight);
         listSector.push_back(sector);
     }
 
@@ -204,26 +206,40 @@ public:
         cub.myInitialize();
         myLoadMapHight();
 
-        int sectorLen = 15;
+        /*glm::i16vec3 p = glm::i16vec3(256, -256, 0);
+        char test1 = std::numeric_limits<char>::max();
+        std::cout << "unsigned = " << (int)test1 << " size = " << sizeof(test1) << std::endl;*/
+
+        /*int16_t x = -10050, y = 12000, z = -1200;
+        uint32_t packedXY = ((uint32_t)(uint16_t)x << 16) | (uint32_t)(uint16_t)y;
+
+        int16_t x_res = (int16_t)(packedXY >> 16);
+        int16_t y_res = (int16_t)(packedXY & 0xFFFF);*/
+
+        int sectorLen = 2;
+        int hight = 2;
         int len = -1;
-        for (int x = -sectorLen; x < sectorLen; x++)
+        for (int y = 0; y < hight; y++)
         {
-            for (int z = -sectorLen; z < sectorLen; z++)
+            for (int x = -sectorLen; x < sectorLen; x++)
             {
-                len++;
-                //myCreateSector(glm::vec3(x, 0, z), len);
-                myCreateSectorHight(glm::vec3(x, 0, z), len, sectorLen);
+                for (int z = -sectorLen; z < sectorLen; z++)
+                {
+                    len++;
+                    myCreateSectorHight(glm::vec3(x, y, z), len, sectorLen, 1, y);
+                }
             }
         }
 
         for (auto& sec : listSector)
         {
-            sec.myInitializeSides(listSector, sectorLen * 2);
+            sec.myInitializeSides(listSector, sectorLen * 2, hight);
         }
         int countRenderCub = 0;
         for (auto& sec : listSector)
         {
             sec.myUptimazeSector();
+            //sec.myAllCubesRender();
             sec.myInitializeSSBO();
             countRenderCub += sec.renderCubes.size();
         }
@@ -231,14 +247,14 @@ public:
         myLoadTexture();
 	}
 
-    void myAddCubANormal(const glm::vec3 _norm, std::vector<std::pair<InstanceData&, GLuint>>& _cubes,
+    void myAddCubANormal(const glm::i16vec3 _norm, std::vector<std::pair<InstanceData&, GLuint>>& _cubes,
         std::unique_ptr<std::pair<InstanceData&, GLuint>>& _ptrAddCub)
     {
-        glm::vec3 addCub = glm::vec3(rayCastCub->first.model[3]) + _norm;
+        glm::i16vec3 addCub = rayCastCub->first.pos + _norm;
 
         for (size_t i = 0; i < _cubes.size(); i++)
         {
-            if (glm::vec3(_cubes[i].first.model[3]) == addCub)
+            if (_cubes[i].first.pos == addCub)
             {
                 _ptrAddCub = std::make_unique<std::pair<InstanceData&, GLuint>>(_cubes[i]);
             }
@@ -265,7 +281,7 @@ public:
 
             if (pairCubeRay[i].first.isVisible &&
                 MySimpleRayCast::intersectAABB(_person.camFps.myGetPos(), _person.camFps.myGetFront(), 
-                pairCubeRay[i].first.model[3], t))
+                pairCubeRay[i].first.pos, t))
             {
                 if (t < closestDistanceCast)
                 {
@@ -280,16 +296,16 @@ public:
             glm::vec3 hitPoint = _person.camFps.myGetPos() + _person.camFps.myGetFront() * 
                 closestDistanceCast;
 
-            glm::vec3 normalCub = MySimpleRayCast::getNormal(hitPoint, rayCastCub->first.model[3]);
+            glm::vec3 normalCub = MySimpleRayCast::getNormal(hitPoint, rayCastCub->first.pos);
             myAddCubANormal(normalCub, pairCubeRay, rayCastCubAdd);
         }
     }
 
-    void myRenderSectorCurrent()
+    /*void myRenderSectorCurrent()
     {
         glBindVertexArray(myGetVAO());
         listSector[55].myRenderSector();
-    }
+    }*/
 
     void myRenderSectorFromShadow(const glm::vec3& _playerPos)
     {

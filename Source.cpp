@@ -25,10 +25,10 @@ GLFWwindow* window;
 //камера полета
 //MyCameraFly cameraFly(0.0f, 0.0f, -1.0f);
 //fps
-MyTestFirstPerson firstPerson(glm::vec3(0, 18, 0));
+MyTestFirstPerson firstPerson(glm::vec3(0, 48, 0));
 //шейдер
 MyShader shaderSimple;
-MyShader shaderInstance;
+//MyShader shaderInstance;
 //тестовый куб
 MyPrimitiveCube testCube;
 //тестовый инстанс
@@ -41,7 +41,7 @@ MyOutlineShader outline;
 //MyGPUCulling myCulling;
 //источники света
 //тест direct instance
-MyDirectInstansing dInstance;
+//MyDirectInstansing dInstance;
 MyShader renderShader;
 
 GLuint VAO, VBO;
@@ -84,9 +84,10 @@ void myGenerateVao()
 	)";
 	//----------------------------------------
 	shaderSimple = MyShader("shader/selfShaderV.txt", "shader/selfShaderF.txt");
-	shaderInstance = MyShader("shader/instanceShaderV.txt", "shader/simpleShaderF.txt");
-	renderShader = MyShader("shader/directInstanceV.txt", "shader/simpleShaderF.txt");
-	//---------------------------------------
+	//shaderInstance = MyShader("shader/instanceShaderV.txt", "shader/simpleShaderF.txt");
+	//renderShader = MyShader("shader/directInstanceV.txt", "shader/simpleShaderF.txt");
+	renderShader = MyShader("shader/directInstanceDataV.txt", "shader/simpleShaderF.txt");
+	//----------------------------------------
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 
@@ -116,8 +117,6 @@ void myEventKey(GLFWwindow* _window, int _key, int _scancode, int _action, int _
 		{
 			testInstance.rayCastCub->first.isVisible = false;
 
-			/*testInstance.myChangeCub(testInstance.rayCastCub->first,
-				testInstance.rayCastCub->second);*/
 			testInstance.myDeleteCub(testInstance.rayCastCub->first,
 				testInstance.rayCastCub->second);
 		}
@@ -128,8 +127,6 @@ void myEventKey(GLFWwindow* _window, int _key, int _scancode, int _action, int _
 		{
 			testInstance.rayCastCubAdd->first.isVisible = true;
 			
-			/*testInstance.myChangeCub(testInstance.rayCastCubAdd->first, 
-				testInstance.rayCastCubAdd->second);*/
 			testInstance.myAddCube(testInstance.rayCastCubAdd->first,
 				testInstance.rayCastCubAdd->second);
 		}
@@ -210,7 +207,8 @@ void myRender()
 	//---------test end stencil
 	if (testInstance.rayCastCub)
 	{
-		outline.myUpdateMatrix(testInstance.rayCastCub->first.model);
+		outline.myUpdateMatrix(/*testInstance.rayCastCub->first.model*/
+			glm::translate(glm::mat4(1.0f), glm::vec3(testInstance.rayCastCub->first.pos)));
 
 		outline.myRenderOutline(firstPerson.camFps);
 	}

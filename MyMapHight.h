@@ -24,7 +24,7 @@ public:
 			}
 		}
 
-		printf("test mapHeight");
+		printf("test mapHeight\n");
 	}
 
 	inline glm::vec3 myGetColor(int _w, int _h) const

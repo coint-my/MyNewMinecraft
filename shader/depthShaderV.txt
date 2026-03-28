@@ -1,32 +1,56 @@
 #version 430 core
 layout (location = 0) in vec3 aPos; // Позиция вершины куба из VBO
 
+struct MyInstanceDataRender 
+{
+    int x_y;
+    int z_texIndex;
+    int visible_index;
+    int index;
+};
+
 struct InstanceData 
 {
-    mat4 model;
+    vec3 pos;
     int texIndex;
     int isVisible;
     int index;
-    float p1;
 };
+
+InstanceData unpaked(MyInstanceDataRender _instance)
+{
+    InstanceData myData;
+    //vec3 pos = vec3(float((_instance.x_y << 16) >> 16), float(_instance.x_y >> 16), float((_instance.z_texIndex << 16) >> 16));
+    vec3 pos = vec3(float(_instance.x_y >> 16), float((_instance.x_y << 16) >> 16), float(_instance.z_texIndex >> 16));
+    myData.pos = pos;
+    myData.texIndex = (_instance.z_texIndex << 16) >> 16;
+    myData.isVisible = (_instance.visible_index << 16) >> 16;
+    myData.index = _instance.index;
+    return myData;
+}
 
 // Тот же буфер, что и в основном рендере (binding = 0)
 layout (std430, binding = 0) buffer InBuf 
 {
-    InstanceData allInstances[];
+    MyInstanceDataRender allInstances[];
 };
 
 uniform mat4 lightSpaceMatrix;
 
 void main()
 {
-    // Получаем матрицу модели конкретного видимого куба
-    if(allInstances[gl_InstanceID].isVisible == 1)
-    {
-        mat4 model = allInstances[gl_InstanceID].model;
-        gl_Position = lightSpaceMatrix * model * vec4(aPos, 1.0);
-	return;
-    }
+    MyInstanceDataRender data2 = allInstances[gl_InstanceID];
+    InstanceData data = unpaked(data2);
 
-    gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // Выбрасываем за экран
+    mat4 model = mat4(1.0); // Создает единичную матрицу
+    model[3].xyz = data.pos;     // Записывает vec3 в 4-й столбец
+
+    // Получаем матрицу модели конкретного видимого куба
+    //if(data.isVisible == 1)
+    //{
+        gl_Position = lightSpaceMatrix * model * vec4(aPos, 1.0);
+    //    return;
+    //}
+
+    //gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // Выбрасываем за экран
 }
